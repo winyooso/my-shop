@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Shop — POS</title>
+  <title>ร้านของฉัน — POS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .nav-btn { padding:.375rem 1rem; border-radius:9999px; font-size:.875rem; font-weight:500; color:rgba(255,255,255,.75); transition:all .15s; }
@@ -11,7 +11,6 @@
     .nav-btn.active { background:#fff; color:#4338ca; }
     .rtab { padding:.375rem 1rem; border-radius:9999px; font-size:.8125rem; font-weight:500; transition:all .15s; cursor:pointer; border:1px solid #e2e8f0; color:#64748b; }
     .rtab.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
-    /* Receipt print styles */
     @media print {
       body > *:not(#receipt-modal) { display:none !important; }
       #receipt-modal { position:static !important; background:none !important; padding:0 !important; }
@@ -22,79 +21,81 @@
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 text-sm">
 
-<!-- ── NAV ───────────────────────────────────────────────── -->
+<!-- ── แถบนำทาง ────────────────────────────────────────── -->
 <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
   <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-    <span class="font-bold text-base tracking-widest">MY SHOP</span>
+    <span class="font-bold text-base tracking-widest">ร้านของฉัน</span>
     <nav class="flex gap-1">
-      <button class="nav-btn active"  data-tab="pos">POS</button>
-      <button class="nav-btn"         data-tab="inventory">Inventory</button>
-      <button class="nav-btn"         data-tab="customers">Customers</button>
-      <button class="nav-btn"         data-tab="report">Report</button>
+      <button class="nav-btn active"  data-tab="pos">ขายสินค้า</button>
+      <button class="nav-btn"         data-tab="inventory">คลังสินค้า</button>
+      <button class="nav-btn"         data-tab="customers">ลูกค้า</button>
+      <button class="nav-btn"         data-tab="report">รายงาน</button>
     </nav>
   </div>
 </header>
 
-<!-- ── POS ───────────────────────────────────────────────── -->
+<!-- ── หน้าขายสินค้า (POS) ────────────────────────────── -->
 <main id="tab-pos" class="tab-page max-w-7xl mx-auto p-4">
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-    <!-- Product grid -->
+    <!-- ตารางสินค้า -->
     <section class="lg:col-span-2">
-      <input id="pos-search" type="text" placeholder="Search products…"
+      <input id="pos-search" type="text" placeholder="ค้นหาสินค้า…"
         class="w-full mb-3 border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" />
       <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
     </section>
 
-    <!-- Cart -->
+    <!-- ตะกร้าสินค้า -->
     <section class="bg-white rounded-2xl shadow p-4 flex flex-col gap-3 lg:sticky lg:top-[72px] h-fit">
-      <h2 class="font-bold text-base border-b pb-2">Cart</h2>
+      <h2 class="font-bold text-base border-b pb-2">ตะกร้าสินค้า</h2>
 
-      <!-- Customer selector -->
+      <!-- เลือกลูกค้า -->
       <div class="flex items-center gap-2">
-        <label class="text-slate-500 shrink-0 w-20">Customer</label>
+        <label class="text-slate-500 shrink-0 w-16">ลูกค้า</label>
         <select id="cart-customer"
           class="flex-1 border rounded-xl px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
-          <option value="">— Walk-in —</option>
+          <option value="">— ลูกค้าทั่วไป —</option>
         </select>
       </div>
 
       <div id="cart-items" class="flex flex-col gap-2 min-h-[100px]">
-        <p class="text-slate-400 text-xs text-center mt-6">Cart is empty</p>
+        <p class="text-slate-400 text-xs text-center mt-6">ยังไม่มีสินค้าในตะกร้า</p>
       </div>
+
       <div class="border-t pt-3 space-y-2">
         <div class="flex justify-between font-bold text-base">
-          <span>Total</span><span id="cart-total">฿0.00</span>
+          <span>ยอดรวม</span><span id="cart-total">฿0.00</span>
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-slate-500 w-14 shrink-0">Paid</label>
+          <label class="text-slate-500 w-16 shrink-0">รับเงิน</label>
           <input id="paid-input" type="number" min="0" step="any" placeholder="0.00"
             class="flex-1 border rounded-xl px-2 py-1.5 text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
             oninput="calcChange()" />
         </div>
         <div class="flex justify-between font-semibold">
-          <span class="text-slate-500">Change</span>
+          <span class="text-slate-500">ทอนเงิน</span>
           <span id="change-display" class="text-slate-400">—</span>
         </div>
       </div>
+
       <button onclick="checkout()"
         class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition mt-1">
-        Checkout
+        ชำระเงิน
       </button>
       <button onclick="clearCart()" class="text-xs text-slate-400 hover:text-red-500 transition text-center">
-        Clear cart
+        ล้างตะกร้า
       </button>
     </section>
   </div>
 </main>
 
-<!-- ── INVENTORY ─────────────────────────────────────────── -->
+<!-- ── หน้าคลังสินค้า ─────────────────────────────────── -->
 <main id="tab-inventory" class="tab-page hidden max-w-5xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
-    <h1 class="font-bold text-lg">Inventory</h1>
+    <h1 class="font-bold text-lg">คลังสินค้า</h1>
     <button onclick="openProductModal()"
       class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">
-      + Add Product
+      + เพิ่มสินค้า
     </button>
   </div>
   <div id="low-stock-bar" class="hidden mb-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 text-amber-800"></div>
@@ -102,11 +103,11 @@
     <table class="w-full">
       <thead class="bg-slate-50 text-xs uppercase text-slate-500">
         <tr>
-          <th class="text-left px-4 py-3">Name</th>
-          <th class="text-right px-4 py-3">Cost</th>
-          <th class="text-right px-4 py-3">Price</th>
-          <th class="text-right px-4 py-3">Qty</th>
-          <th class="text-right px-4 py-3">Alert</th>
+          <th class="text-left px-4 py-3">ชื่อสินค้า</th>
+          <th class="text-right px-4 py-3">ต้นทุน</th>
+          <th class="text-right px-4 py-3">ราคาขาย</th>
+          <th class="text-right px-4 py-3">คงเหลือ</th>
+          <th class="text-right px-4 py-3">แจ้งเตือน</th>
           <th class="px-4 py-3 w-28"></th>
         </tr>
       </thead>
@@ -115,24 +116,24 @@
   </div>
 </main>
 
-<!-- ── CUSTOMERS ──────────────────────────────────────────── -->
+<!-- ── หน้าลูกค้า ─────────────────────────────────────── -->
 <main id="tab-customers" class="tab-page hidden max-w-4xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
-    <h1 class="font-bold text-lg">Customers</h1>
+    <h1 class="font-bold text-lg">รายการลูกค้า</h1>
     <button onclick="openCustomerModal()"
       class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">
-      + Add Customer
+      + เพิ่มลูกค้า
     </button>
   </div>
   <div class="bg-white rounded-2xl shadow overflow-x-auto">
     <table class="w-full">
       <thead class="bg-slate-50 text-xs uppercase text-slate-500">
         <tr>
-          <th class="text-left px-4 py-3">Name</th>
-          <th class="text-left px-4 py-3">Phone</th>
-          <th class="text-left px-4 py-3">Note</th>
-          <th class="text-right px-4 py-3">Orders</th>
-          <th class="text-right px-4 py-3">Total Spent</th>
+          <th class="text-left px-4 py-3">ชื่อ</th>
+          <th class="text-left px-4 py-3">เบอร์โทร</th>
+          <th class="text-left px-4 py-3">หมายเหตุ</th>
+          <th class="text-right px-4 py-3">คำสั่งซื้อ</th>
+          <th class="text-right px-4 py-3">ยอดซื้อรวม</th>
           <th class="px-4 py-3 w-28"></th>
         </tr>
       </thead>
@@ -141,14 +142,13 @@
   </div>
 </main>
 
-<!-- ── REPORT ─────────────────────────────────────────────── -->
+<!-- ── หน้ารายงาน ─────────────────────────────────────── -->
 <main id="tab-report" class="tab-page hidden max-w-5xl mx-auto p-4">
 
-  <!-- Mode toggle: Daily / Monthly -->
   <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
     <div class="flex gap-2">
-      <button class="rtab active" id="mode-daily"   onclick="setReportMode('daily')">Daily</button>
-      <button class="rtab"        id="mode-monthly" onclick="setReportMode('monthly')">Monthly</button>
+      <button class="rtab active" id="mode-daily"   onclick="setReportMode('daily')">รายวัน</button>
+      <button class="rtab"        id="mode-monthly" onclick="setReportMode('monthly')">รายเดือน</button>
     </div>
     <div id="report-daily-ctrl">
       <input id="report-date" type="date"
@@ -162,89 +162,87 @@
     </div>
   </div>
 
-  <!-- ── Daily view ── -->
+  <!-- รายงานรายวัน -->
   <div id="report-daily">
     <div class="grid grid-cols-3 gap-4 mb-5">
       <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">Revenue</p>
+        <p class="text-xs text-slate-500 mb-1">ยอดขาย</p>
         <p id="stat-revenue" class="text-2xl font-bold text-indigo-600">฿0.00</p>
       </div>
       <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">Total Cost</p>
+        <p class="text-xs text-slate-500 mb-1">ต้นทุนรวม</p>
         <p id="stat-cost" class="text-2xl font-bold text-slate-600">฿0.00</p>
       </div>
       <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">Gross Profit</p>
+        <p class="text-xs text-slate-500 mb-1">กำไรขั้นต้น</p>
         <p id="stat-profit" class="text-2xl font-bold text-green-600">฿0.00</p>
       </div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-white rounded-2xl shadow p-4">
-        <h2 class="font-semibold mb-3">Top Selling Items</h2>
+        <h2 class="font-semibold mb-3">สินค้าขายดี</h2>
         <div id="top-sellers"></div>
       </div>
       <div class="bg-white rounded-2xl shadow p-4">
-        <h2 class="font-semibold mb-3">Sales Log</h2>
+        <h2 class="font-semibold mb-3">บันทึกการขาย</h2>
         <div id="sales-log" class="space-y-2 max-h-80 overflow-y-auto"></div>
       </div>
     </div>
   </div>
 
-  <!-- ── Monthly view ── -->
+  <!-- รายงานรายเดือน -->
   <div id="report-monthly" class="hidden">
-    <!-- Stats row -->
     <div class="grid grid-cols-4 gap-4 mb-5">
       <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">Revenue</p>
+        <p class="text-xs text-slate-500 mb-1">ยอดขาย</p>
         <p id="m-revenue" class="text-xl font-bold text-indigo-600">฿0.00</p>
       </div>
       <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">Cost</p>
+        <p class="text-xs text-slate-500 mb-1">ต้นทุน</p>
         <p id="m-cost" class="text-xl font-bold text-slate-600">฿0.00</p>
       </div>
       <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">Gross Profit</p>
+        <p class="text-xs text-slate-500 mb-1">กำไรขั้นต้น</p>
         <p id="m-profit" class="text-xl font-bold text-green-600">฿0.00</p>
       </div>
       <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">Transactions</p>
+        <p class="text-xs text-slate-500 mb-1">รายการทั้งหมด</p>
         <p id="m-txn" class="text-xl font-bold text-slate-700">0</p>
       </div>
     </div>
 
-    <!-- Sub-tabs: by customer / by product -->
     <div class="flex gap-2 mb-4">
-      <button class="rtab active" id="msub-cust" onclick="setMonthSubTab('cust')">By Customer</button>
-      <button class="rtab"        id="msub-prod" onclick="setMonthSubTab('prod')">By Product</button>
+      <button class="rtab active" id="msub-cust" onclick="setMonthSubTab('cust')">แยกตามลูกค้า</button>
+      <button class="rtab"        id="msub-prod" onclick="setMonthSubTab('prod')">แยกตามสินค้า</button>
     </div>
 
-    <!-- By Customer table -->
+    <!-- ตารางตามลูกค้า -->
     <div id="m-by-cust" class="bg-white rounded-2xl shadow overflow-x-auto">
       <table class="w-full">
         <thead class="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
             <th class="text-left px-4 py-3 w-10">#</th>
-            <th class="text-left px-4 py-3">Customer</th>
-            <th class="text-right px-4 py-3">Orders</th>
-            <th class="text-right px-4 py-3">Revenue</th>
-            <th class="text-right px-4 py-3">Profit</th>
+            <th class="text-left px-4 py-3">ลูกค้า</th>
+            <th class="text-right px-4 py-3">คำสั่งซื้อ</th>
+            <th class="text-right px-4 py-3">ยอดขาย</th>
+            <th class="text-right px-4 py-3">กำไร</th>
           </tr>
         </thead>
         <tbody id="m-cust-tbody"></tbody>
       </table>
     </div>
 
-    <!-- By Product table -->
+    <!-- ตารางตามสินค้า -->
     <div id="m-by-prod" class="hidden bg-white rounded-2xl shadow overflow-x-auto">
       <table class="w-full">
         <thead class="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
             <th class="text-left px-4 py-3 w-10">#</th>
-            <th class="text-left px-4 py-3">Product</th>
-            <th class="text-right px-4 py-3">Qty Sold</th>
-            <th class="text-right px-4 py-3">Revenue</th>
-            <th class="text-right px-4 py-3">Cost</th>
-            <th class="text-right px-4 py-3">Profit</th>
+            <th class="text-left px-4 py-3">สินค้า</th>
+            <th class="text-right px-4 py-3">จำนวนขาย</th>
+            <th class="text-right px-4 py-3">ยอดขาย</th>
+            <th class="text-right px-4 py-3">ต้นทุน</th>
+            <th class="text-right px-4 py-3">กำไร</th>
           </tr>
         </thead>
         <tbody id="m-prod-tbody"></tbody>
@@ -253,104 +251,101 @@
   </div>
 </main>
 
-<!-- ── PRODUCT MODAL ─────────────────────────────────────── -->
+<!-- ── Modal เพิ่ม/แก้ไขสินค้า ────────────────────────── -->
 <div id="product-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-    <h2 id="prod-modal-title" class="font-bold text-lg mb-5">Add Product</h2>
+    <h2 id="prod-modal-title" class="font-bold text-lg mb-5">เพิ่มสินค้า</h2>
     <div class="space-y-3">
-      <input id="f-name"  type="text"   placeholder="Product name *"
+      <input id="f-name"  type="text"   placeholder="ชื่อสินค้า *"
         class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       <div class="grid grid-cols-2 gap-3">
-        <input id="f-cost"  type="number" step="any" min="0" placeholder="Cost *"
+        <input id="f-cost"  type="number" step="any" min="0" placeholder="ต้นทุน *"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        <input id="f-price" type="number" step="any" min="0" placeholder="Sell price *"
+        <input id="f-price" type="number" step="any" min="0" placeholder="ราคาขาย *"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       </div>
       <div class="grid grid-cols-2 gap-3">
-        <input id="f-qty" type="number" min="0" placeholder="Qty *"
+        <input id="f-qty" type="number" min="0" placeholder="จำนวน *"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        <input id="f-low" type="number" min="0" placeholder="Low-stock alert"
+        <input id="f-low" type="number" min="0" placeholder="แจ้งเตือนเมื่อเหลือ"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       </div>
     </div>
     <div class="flex gap-3 mt-6">
       <button onclick="saveProduct()"
-        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">Save</button>
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">บันทึก</button>
       <button onclick="closeProductModal()"
-        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">Cancel</button>
+        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">ยกเลิก</button>
     </div>
   </div>
 </div>
 
-<!-- ── CUSTOMER MODAL ─────────────────────────────────────── -->
+<!-- ── Modal เพิ่ม/แก้ไขลูกค้า ──────────────────────── -->
 <div id="customer-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-    <h2 id="cust-modal-title" class="font-bold text-lg mb-5">Add Customer</h2>
+    <h2 id="cust-modal-title" class="font-bold text-lg mb-5">เพิ่มลูกค้า</h2>
     <div class="space-y-3">
-      <input id="cf-name"  type="text" placeholder="Customer name *"
+      <input id="cf-name"  type="text" placeholder="ชื่อลูกค้า *"
         class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      <input id="cf-phone" type="text" placeholder="Phone number"
+      <input id="cf-phone" type="text" placeholder="เบอร์โทรศัพท์"
         class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      <textarea id="cf-note" rows="2" placeholder="Note (address, etc.)"
+      <textarea id="cf-note" rows="2" placeholder="หมายเหตุ (ที่อยู่ ฯลฯ)"
         class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
     </div>
     <div class="flex gap-3 mt-6">
       <button onclick="saveCustomer()"
-        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">Save</button>
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">บันทึก</button>
       <button onclick="closeCustomerModal()"
-        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">Cancel</button>
+        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">ยกเลิก</button>
     </div>
   </div>
 </div>
 
-<!-- ── RECEIPT MODAL ──────────────────────────────────────── -->
+<!-- ── ใบเสร็จ ────────────────────────────────────────── -->
 <div id="receipt-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
   <div id="receipt-box" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-    <!-- Receipt header -->
     <div class="text-center mb-4">
-      <p class="font-bold text-lg tracking-widest">MY SHOP</p>
+      <p class="font-bold text-lg tracking-widest">ร้านของฉัน</p>
       <p id="r-datetime" class="text-xs text-slate-400 mt-0.5"></p>
     </div>
     <div class="border-t border-dashed pt-3 mb-3 space-y-0.5">
       <div class="flex gap-2">
-        <span class="text-slate-500 w-20 shrink-0">Customer</span>
+        <span class="text-slate-500 w-16 shrink-0">ลูกค้า</span>
         <span id="r-customer" class="font-medium"></span>
       </div>
     </div>
-    <!-- Items -->
     <table class="w-full text-sm mb-3">
       <thead class="text-xs text-slate-500 border-b">
         <tr>
-          <th class="text-left pb-1">Item</th>
-          <th class="text-center pb-1 w-10">Qty</th>
-          <th class="text-right pb-1 w-20">Price</th>
-          <th class="text-right pb-1 w-20">Total</th>
+          <th class="text-left pb-1">รายการ</th>
+          <th class="text-center pb-1 w-10">จำนวน</th>
+          <th class="text-right pb-1 w-20">ราคา</th>
+          <th class="text-right pb-1 w-20">รวม</th>
         </tr>
       </thead>
       <tbody id="r-items" class="divide-y divide-slate-100"></tbody>
     </table>
-    <!-- Totals -->
     <div class="border-t border-dashed pt-3 space-y-1.5">
       <div class="flex justify-between font-bold text-base">
-        <span>Total</span><span id="r-total"></span>
+        <span>ยอดรวม</span><span id="r-total"></span>
       </div>
       <div class="flex justify-between text-slate-600">
-        <span>Paid</span><span id="r-paid"></span>
+        <span>รับเงิน</span><span id="r-paid"></span>
       </div>
       <div class="flex justify-between text-green-600 font-semibold">
-        <span>Change</span><span id="r-change"></span>
+        <span>ทอนเงิน</span><span id="r-change"></span>
       </div>
     </div>
     <div id="receipt-actions" class="flex gap-3 mt-5">
       <button onclick="window.print()"
-        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition font-medium">Print</button>
+        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition font-medium">พิมพ์ใบเสร็จ</button>
       <button onclick="closeReceipt()"
-        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">Done</button>
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">เสร็จสิ้น</button>
     </div>
   </div>
 </div>
 
-<!-- ── TOAST ─────────────────────────────────────────────── -->
+<!-- ── Toast แจ้งเตือน ───────────────────────────────── -->
 <div id="toast" class="hidden fixed bottom-5 right-5 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50"></div>
 
 <script>
@@ -364,12 +359,12 @@ const db = {
   setCustomers: d  => localStorage.setItem('sp_customers', JSON.stringify(d)),
 };
 
-const uid    = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const fmt    = n  => '฿' + Number(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const today  = () => new Date().toISOString().slice(0, 10);
-const ym     = () => new Date().toISOString().slice(0, 7); // YYYY-MM
+const uid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const fmt   = n  => '฿' + Number(n).toLocaleString('th', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const today = () => new Date().toISOString().slice(0, 10);
+const ym    = () => new Date().toISOString().slice(0, 7);
 
-// ── Tab switching ─────────────────────────────────────────
+// ── สลับแท็บ ─────────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
@@ -394,7 +389,7 @@ function toast(msg, cls = 'bg-slate-800') {
 }
 
 // ═══════════════════════════════════════════════════════════
-// INVENTORY
+// คลังสินค้า
 // ═══════════════════════════════════════════════════════════
 let _editProdId = null;
 
@@ -404,26 +399,26 @@ function renderInventory() {
   const bar = document.getElementById('low-stock-bar');
   bar.classList.toggle('hidden', !low.length);
   if (low.length)
-    bar.innerHTML = '⚠ Low stock: ' + low.map(p => `<b>${p.name}</b> (${p.qty})`).join(', ');
+    bar.innerHTML = '⚠ สินค้าใกล้หมด: ' + low.map(p => `<b>${p.name}</b> (เหลือ ${p.qty})`).join(', ');
 
   const tbody = document.getElementById('inv-tbody');
   if (!products.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">No products yet</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีสินค้า — กดปุ่ม "+ เพิ่มสินค้า"</td></tr>`;
     return;
   }
   tbody.innerHTML = products.map(p => `
     <tr class="border-t hover:bg-slate-50 transition ${p.qty <= p.lowStock ? 'bg-amber-50/60' : ''}">
       <td class="px-4 py-3 font-medium">
         ${p.name}
-        ${p.qty <= p.lowStock ? '<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Low</span>' : ''}
+        ${p.qty <= p.lowStock ? '<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">ใกล้หมด</span>' : ''}
       </td>
       <td class="px-4 py-3 text-right text-slate-500">${fmt(p.cost)}</td>
       <td class="px-4 py-3 text-right font-semibold">${fmt(p.price)}</td>
       <td class="px-4 py-3 text-right">${p.qty}</td>
       <td class="px-4 py-3 text-right text-slate-400">${p.lowStock ?? '—'}</td>
       <td class="px-4 py-3 text-right space-x-3">
-        <button onclick="openProductModal('${p.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">Edit</button>
-        <button onclick="deleteProduct('${p.id}')"    class="text-red-400 hover:text-red-600 font-medium">Del</button>
+        <button onclick="openProductModal('${p.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">แก้ไข</button>
+        <button onclick="deleteProduct('${p.id}')"    class="text-red-400 hover:text-red-600 font-medium">ลบ</button>
       </td>
     </tr>`).join('');
 }
@@ -431,7 +426,7 @@ function renderInventory() {
 function openProductModal(id = null) {
   _editProdId = id;
   const p = id ? db.products().find(x => x.id === id) : {};
-  document.getElementById('prod-modal-title').textContent = id ? 'Edit Product' : 'Add Product';
+  document.getElementById('prod-modal-title').textContent = id ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า';
   document.getElementById('f-name').value  = p?.name     ?? '';
   document.getElementById('f-cost').value  = p?.cost     ?? '';
   document.getElementById('f-price').value = p?.price    ?? '';
@@ -454,16 +449,16 @@ function saveProduct() {
   const qty      = parseInt(document.getElementById('f-qty').value, 10);
   const lowStock = parseInt(document.getElementById('f-low').value, 10) || 0;
   if (!name || isNaN(cost) || isNaN(price) || isNaN(qty)) {
-    toast('Please fill in all required fields (*)', 'bg-red-500'); return;
+    toast('กรุณากรอกข้อมูลที่จำเป็น (*)', 'bg-red-500'); return;
   }
   const products = db.products();
   if (_editProdId) {
     const i = products.findIndex(p => p.id === _editProdId);
     products[i] = { ...products[i], name, cost, price, qty, lowStock };
-    toast('Product updated', 'bg-green-600');
+    toast('อัปเดตสินค้าเรียบร้อย', 'bg-green-600');
   } else {
     products.push({ id: uid(), name, cost, price, qty, lowStock });
-    toast('Product added', 'bg-green-600');
+    toast('เพิ่มสินค้าเรียบร้อย', 'bg-green-600');
   }
   db.setProducts(products);
   closeProductModal();
@@ -472,15 +467,15 @@ function saveProduct() {
 }
 
 function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
+  if (!confirm('ยืนยันการลบสินค้านี้?')) return;
   db.setProducts(db.products().filter(p => p.id !== id));
   renderInventory();
   renderGrid();
-  toast('Product deleted');
+  toast('ลบสินค้าเรียบร้อย');
 }
 
 // ═══════════════════════════════════════════════════════════
-// CUSTOMERS
+// ลูกค้า
 // ═══════════════════════════════════════════════════════════
 let _editCustId = null;
 
@@ -490,13 +485,12 @@ function renderCustomers() {
   const tbody     = document.getElementById('cust-tbody');
 
   if (!customers.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">No customers yet</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีลูกค้า — กดปุ่ม "+ เพิ่มลูกค้า"</td></tr>`;
     return;
   }
-
   tbody.innerHTML = customers.map(c => {
-    const custSales   = sales.filter(s => s.customerId === c.id);
-    const totalSpent  = custSales.reduce((s, x) => s + x.total, 0);
+    const custSales  = sales.filter(s => s.customerId === c.id);
+    const totalSpent = custSales.reduce((s, x) => s + x.total, 0);
     return `
       <tr class="border-t hover:bg-slate-50 transition">
         <td class="px-4 py-3 font-medium">${c.name}</td>
@@ -505,8 +499,8 @@ function renderCustomers() {
         <td class="px-4 py-3 text-right">${custSales.length}</td>
         <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(totalSpent)}</td>
         <td class="px-4 py-3 text-right space-x-3">
-          <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">Edit</button>
-          <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 hover:text-red-600 font-medium">Del</button>
+          <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">แก้ไข</button>
+          <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 hover:text-red-600 font-medium">ลบ</button>
         </td>
       </tr>`;
   }).join('');
@@ -515,7 +509,7 @@ function renderCustomers() {
 function openCustomerModal(id = null) {
   _editCustId = id;
   const c = id ? db.customers().find(x => x.id === id) : {};
-  document.getElementById('cust-modal-title').textContent = id ? 'Edit Customer' : 'Add Customer';
+  document.getElementById('cust-modal-title').textContent = id ? 'แก้ไขข้อมูลลูกค้า' : 'เพิ่มลูกค้า';
   document.getElementById('cf-name').value  = c?.name  ?? '';
   document.getElementById('cf-phone').value = c?.phone ?? '';
   document.getElementById('cf-note').value  = c?.note  ?? '';
@@ -533,40 +527,40 @@ function saveCustomer() {
   const name  = document.getElementById('cf-name').value.trim();
   const phone = document.getElementById('cf-phone').value.trim();
   const note  = document.getElementById('cf-note').value.trim();
-  if (!name) { toast('Customer name is required', 'bg-red-500'); return; }
+  if (!name) { toast('กรุณากรอกชื่อลูกค้า', 'bg-red-500'); return; }
 
   const customers = db.customers();
   if (_editCustId) {
     const i = customers.findIndex(c => c.id === _editCustId);
     customers[i] = { ...customers[i], name, phone, note };
-    toast('Customer updated', 'bg-green-600');
+    toast('อัปเดตข้อมูลลูกค้าเรียบร้อย', 'bg-green-600');
   } else {
     customers.push({ id: uid(), name, phone, note });
-    toast('Customer added', 'bg-green-600');
+    toast('เพิ่มลูกค้าเรียบร้อย', 'bg-green-600');
   }
   db.setCustomers(customers);
   closeCustomerModal();
   renderCustomers();
-  populateCustomerSelect(); // keep POS dropdown in sync
+  populateCustomerSelect();
 }
 
 function deleteCustomer(id) {
-  if (!confirm('Delete this customer?')) return;
+  if (!confirm('ยืนยันการลบลูกค้านี้?')) return;
   db.setCustomers(db.customers().filter(c => c.id !== id));
   renderCustomers();
   populateCustomerSelect();
-  toast('Customer deleted');
+  toast('ลบลูกค้าเรียบร้อย');
 }
 
 // ═══════════════════════════════════════════════════════════
-// POS
+// ขายสินค้า (POS)
 // ═══════════════════════════════════════════════════════════
-let cart = []; // [{productId, name, qty, price, cost}]
+let cart = [];
 
 function populateCustomerSelect() {
   const sel = document.getElementById('cart-customer');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">— Walk-in —</option>' +
+  sel.innerHTML = '<option value="">— ลูกค้าทั่วไป —</option>' +
     db.customers().map(c => `<option value="${c.id}" ${cur === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
 }
 
@@ -575,7 +569,7 @@ function renderGrid(filter = '') {
   const products = db.products().filter(p => p.name.toLowerCase().includes(q));
   const grid     = document.getElementById('product-grid');
   if (!products.length) {
-    grid.innerHTML = `<p class="col-span-3 text-center py-12 text-slate-400">No products found</p>`;
+    grid.innerHTML = `<p class="col-span-3 text-center py-12 text-slate-400">ไม่พบสินค้า</p>`;
     return;
   }
   grid.innerHTML = products.map(p => {
@@ -587,7 +581,7 @@ function renderGrid(filter = '') {
         ${oos ? 'disabled' : ''}>
         <p class="font-semibold leading-tight mb-1 line-clamp-2">${p.name}</p>
         <p class="text-indigo-600 font-bold">${fmt(p.price)}</p>
-        <p class="text-xs text-slate-400 mt-1">Stock: ${p.qty}</p>
+        <p class="text-xs text-slate-400 mt-1">คงเหลือ: ${p.qty}</p>
       </button>`;
   }).join('');
 }
@@ -597,7 +591,7 @@ function addToCart(productId) {
   if (!p || p.qty === 0) return;
   const item = cart.find(c => c.productId === productId);
   if (item) {
-    if (item.qty >= p.qty) { toast('Not enough stock', 'bg-amber-500'); return; }
+    if (item.qty >= p.qty) { toast('สินค้าไม่เพียงพอ', 'bg-amber-500'); return; }
     item.qty++;
   } else {
     cart.push({ productId, name: p.name, qty: 1, price: p.price, cost: p.cost });
@@ -614,7 +608,7 @@ function setCartQty(productId, delta) {
     cart = cart.filter(c => c.productId !== productId);
   } else if (p && item.qty > p.qty) {
     item.qty = p.qty;
-    toast('Max stock reached', 'bg-amber-500');
+    toast('สินค้าเต็มจำนวนแล้ว', 'bg-amber-500');
   }
   renderCart();
 }
@@ -634,9 +628,8 @@ function renderCart() {
               class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold">+</button>
           </div>
           <span class="font-semibold w-16 text-right shrink-0">${fmt(i.price * i.qty)}</span>
-        </div>`)
-        .join('')
-    : `<p class="text-slate-400 text-xs text-center mt-6">Cart is empty</p>`;
+        </div>`).join('')
+    : `<p class="text-slate-400 text-xs text-center mt-6">ยังไม่มีสินค้าในตะกร้า</p>`;
   document.getElementById('cart-total').textContent = fmt(total);
   calcChange();
 }
@@ -650,23 +643,22 @@ function calcChange() {
   } else if (paid >= total) {
     el.textContent = fmt(paid - total); el.className = 'text-green-600 font-semibold';
   } else {
-    el.textContent = `Short ${fmt(total - paid)}`; el.className = 'text-red-500 font-semibold';
+    el.textContent = `ขาด ${fmt(total - paid)}`; el.className = 'text-red-500 font-semibold';
   }
 }
 
 function checkout() {
-  if (!cart.length) { toast('Cart is empty', 'bg-amber-500'); return; }
+  if (!cart.length) { toast('ยังไม่มีสินค้าในตะกร้า', 'bg-amber-500'); return; }
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const paid  = parseFloat(document.getElementById('paid-input').value) || 0;
-  if (paid < total) { toast('Amount paid is insufficient', 'bg-red-500'); return; }
+  if (paid < total) { toast('จำนวนเงินที่รับไม่เพียงพอ', 'bg-red-500'); return; }
 
-  // Resolve customer
   const custId   = document.getElementById('cart-customer').value;
   const custName = custId
-    ? (db.customers().find(c => c.id === custId)?.name ?? 'Walk-in')
-    : 'Walk-in';
+    ? (db.customers().find(c => c.id === custId)?.name ?? 'ลูกค้าทั่วไป')
+    : 'ลูกค้าทั่วไป';
 
-  // Deduct stock
+  // หักสต็อก
   const products = db.products();
   cart.forEach(item => {
     const p = products.find(x => x.id === item.productId);
@@ -674,7 +666,7 @@ function checkout() {
   });
   db.setProducts(products);
 
-  // Save sale record (includes customer)
+  // บันทึกการขาย
   const now  = new Date();
   const sale = {
     id: uid(),
@@ -683,8 +675,7 @@ function checkout() {
     customerId:   custId   || null,
     customerName: custName,
     items:        cart.map(i => ({ ...i })),
-    total,
-    paid,
+    total, paid,
     change: paid - total,
   };
   db.setSales([...db.sales(), sale]);
@@ -703,9 +694,9 @@ function clearCart() {
 
 document.getElementById('pos-search').addEventListener('input', e => renderGrid(e.target.value));
 
-// ── Receipt ───────────────────────────────────────────────
+// ── ใบเสร็จ ───────────────────────────────────────────────
 function showReceipt(sale) {
-  document.getElementById('r-datetime').textContent = `${sale.date}  ${sale.time}`;
+  document.getElementById('r-datetime').textContent = `${sale.date}  ${sale.time} น.`;
   document.getElementById('r-customer').textContent = sale.customerName;
   document.getElementById('r-total').textContent    = fmt(sale.total);
   document.getElementById('r-paid').textContent     = fmt(sale.paid);
@@ -726,9 +717,9 @@ function closeReceipt() {
 document.getElementById('receipt-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeReceipt(); });
 
 // ═══════════════════════════════════════════════════════════
-// REPORT
+// รายงาน
 // ═══════════════════════════════════════════════════════════
-let _reportMode = 'daily';
+let _reportMode  = 'daily';
 let _monthSubTab = 'cust';
 
 function setReportMode(mode) {
@@ -751,7 +742,6 @@ function setMonthSubTab(sub) {
   document.getElementById('msub-prod').classList.toggle('active', sub === 'prod');
 }
 
-// Daily report (unchanged logic, customer name added to sales log)
 function renderDailyReport() {
   const input = document.getElementById('report-date');
   const date  = input.value || today();
@@ -779,33 +769,31 @@ function renderDailyReport() {
         <div class="flex items-center gap-3 py-1">
           <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">${i + 1}</span>
           <span class="flex-1">${name}</span>
-          <span class="text-slate-400 text-xs">${d.qty} sold</span>
+          <span class="text-slate-400 text-xs">ขาย ${d.qty} ชิ้น</span>
           <span class="font-semibold">${fmt(d.revenue)}</span>
         </div>`).join('')
-    : `<p class="text-slate-400 text-xs text-center py-6">No sales on this date</p>`;
+    : `<p class="text-slate-400 text-xs text-center py-6">ไม่มีรายการขายในวันนี้</p>`;
 
   document.getElementById('sales-log').innerHTML = daySales.length
     ? [...daySales].reverse().map(s => `
         <div class="border rounded-xl p-3">
           <div class="flex justify-between font-semibold mb-1">
-            <span class="text-slate-400 font-normal">${s.time}</span>
-            <span class="text-xs text-indigo-500 font-medium">${s.customerName || 'Walk-in'}</span>
+            <span class="text-slate-400 font-normal">${s.time} น.</span>
+            <span class="text-xs text-indigo-500 font-medium">${s.customerName || 'ลูกค้าทั่วไป'}</span>
             <span>${fmt(s.total)}</span>
           </div>
           <div class="text-slate-500 text-xs space-y-0.5">
             ${s.items.map(i => `<div>${i.name} × ${i.qty} = ${fmt(i.price * i.qty)}</div>`).join('')}
           </div>
         </div>`).join('')
-    : `<p class="text-slate-400 text-xs text-center py-6">No sales on this date</p>`;
+    : `<p class="text-slate-400 text-xs text-center py-6">ไม่มีรายการขายในวันนี้</p>`;
 }
 
-// Monthly report — by customer + by product
 function renderMonthlyReport() {
   const input = document.getElementById('report-month');
   const month = input.value || ym();
   if (!input.value) input.value = month;
 
-  // Filter sales whose date starts with YYYY-MM
   const mSales  = db.sales().filter(s => s.date.startsWith(month));
   const revenue = mSales.reduce((s, x) => s + x.total, 0);
   const cost    = mSales.reduce((s, x) =>
@@ -814,13 +802,13 @@ function renderMonthlyReport() {
   document.getElementById('m-revenue').textContent = fmt(revenue);
   document.getElementById('m-cost').textContent    = fmt(cost);
   document.getElementById('m-profit').textContent  = fmt(revenue - cost);
-  document.getElementById('m-txn').textContent     = mSales.length;
+  document.getElementById('m-txn').textContent     = mSales.length + ' รายการ';
 
-  // Aggregate by customer
+  // รวมตามลูกค้า
   const custMap = {};
   mSales.forEach(s => {
     const key = s.customerId || '__walkin__';
-    const lbl = s.customerName || 'Walk-in';
+    const lbl = s.customerName || 'ลูกค้าทั่วไป';
     if (!custMap[key]) custMap[key] = { name: lbl, orders: 0, revenue: 0, profit: 0 };
     custMap[key].orders++;
     custMap[key].revenue += s.total;
@@ -837,9 +825,9 @@ function renderMonthlyReport() {
           <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(c.revenue)}</td>
           <td class="px-4 py-3 text-right text-green-600">${fmt(c.profit)}</td>
         </tr>`).join('')
-    : `<tr><td colspan="5" class="text-center py-8 text-slate-400">No sales this month</td></tr>`;
+    : `<tr><td colspan="5" class="text-center py-8 text-slate-400">ไม่มีรายการขายในเดือนนี้</td></tr>`;
 
-  // Aggregate by product
+  // รวมตามสินค้า
   const prodMap = {};
   mSales.forEach(s => s.items.forEach(i => {
     if (!prodMap[i.name]) prodMap[i.name] = { qty: 0, revenue: 0, cost: 0 };
@@ -859,10 +847,10 @@ function renderMonthlyReport() {
           <td class="px-4 py-3 text-right text-slate-500">${fmt(d.cost)}</td>
           <td class="px-4 py-3 text-right text-green-600">${fmt(d.revenue - d.cost)}</td>
         </tr>`).join('')
-    : `<tr><td colspan="6" class="text-center py-8 text-slate-400">No sales this month</td></tr>`;
+    : `<tr><td colspan="6" class="text-center py-8 text-slate-400">ไม่มีรายการขายในเดือนนี้</td></tr>`;
 }
 
-// ── Init ──────────────────────────────────────────────────
+// ── เริ่มต้น ──────────────────────────────────────────────
 renderGrid();
 populateCustomerSelect();
 document.getElementById('report-date').value  = today();
