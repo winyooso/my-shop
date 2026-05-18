@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Shop — POS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .nav-btn { padding:.375rem 1rem; border-radius:9999px; font-size:.875rem; font-weight:500; color:rgba(255,255,255,.75); transition:all .15s; }
+    .nav-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
+    .nav-btn.active { background:#fff; color:#4338ca; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800 text-sm">
+
+<!-- ── NAV ───────────────────────────────────────────────── -->
+<header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <span class="font-bold text-base tracking-widest">MY SHOP</span>
+    <nav class="flex gap-1">
+      <button class="nav-btn active" data-tab="pos">POS</button>
+      <button class="nav-btn"        data-tab="inventory">Inventory</button>
+      <button class="nav-btn"        data-tab="report">Report</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ── POS ───────────────────────────────────────────────── -->
+<main id="tab-pos" class="tab-page max-w-7xl mx-auto p-4">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+    <!-- Product grid -->
+    <section class="lg:col-span-2">
+      <input id="pos-search" type="text" placeholder="Search products…"
+        class="w-full mb-3 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" />
+      <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+    </section>
+
+    <!-- Cart -->
+    <section class="bg-white rounded-2xl shadow p-4 flex flex-col gap-3 lg:sticky lg:top-[72px] h-fit">
+      <h2 class="font-bold text-base border-b pb-2">Cart</h2>
+      <div id="cart-items" class="flex flex-col gap-2 min-h-[100px]">
+        <p class="text-slate-400 text-xs text-center mt-6">Cart is empty</p>
+      </div>
+      <div class="border-t pt-3 space-y-2">
+        <div class="flex justify-between font-bold text-base">
+          <span>Total</span><span id="cart-total">฿0.00</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-slate-500 w-14 shrink-0">Paid</label>
+          <input id="paid-input" type="number" min="0" step="any" placeholder="0.00"
+            class="flex-1 border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            oninput="calcChange()" />
+        </div>
+        <div class="flex justify-between font-semibold" id="change-row">
+          <span class="text-slate-500">Change</span>
+          <span id="change-display" class="text-slate-400">—</span>
+        </div>
+      </div>
+      <button onclick="checkout()"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition mt-1">
+        Checkout
+      </button>
+      <button onclick="clearCart()" class="text-xs text-slate-400 hover:text-red-500 transition text-center">
+        Clear cart
+      </button>
+    </section>
+  </div>
+</main>
+
+<!-- ── INVENTORY ─────────────────────────────────────────── -->
+<main id="tab-inventory" class="tab-page hidden max-w-5xl mx-auto p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="font-bold text-lg">Inventory</h1>
+    <button onclick="openModal()"
+      class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">
+      + Add Product
+    </button>
+  </div>
+
+  <!-- Low-stock alert banner -->
+  <div id="low-stock-bar" class="hidden mb-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 text-amber-800"></div>
+
+  <div class="bg-white rounded-2xl shadow overflow-x-auto">
+    <table class="w-full">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+        <tr>
+          <th class="text-left px-4 py-3">Name</th>
+          <th class="text-right px-4 py-3">Cost</th>
+          <th class="text-right px-4 py-3">Price</th>
+          <th class="text-right px-4 py-3">Qty</th>
+          <th class="text-right px-4 py-3">Alert</th>
+          <th class="px-4 py-3 w-28"></th>
+        </tr>
+      </thead>
+      <tbody id="inv-tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- ── REPORT ─────────────────────────────────────────────── -->
+<main id="tab-report" class="tab-page hidden max-w-4xl mx-auto p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="font-bold text-lg">Daily Report</h1>
+    <input id="report-date" type="date"
+      class="border rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+      onchange="renderReport()" />
+  </div>
+
+  <!-- Stat cards -->
+  <div class="grid grid-cols-3 gap-4 mb-5">
+    <div class="bg-white rounded-2xl shadow p-4">
+      <p class="text-xs text-slate-500 mb-1">Revenue</p>
+      <p id="stat-revenue" class="text-2xl font-bold text-indigo-600">฿0.00</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <p class="text-xs text-slate-500 mb-1">Total Cost</p>
+      <p id="stat-cost" class="text-2xl font-bold text-slate-600">฿0.00</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow p-4">
+      <p class="text-xs text-slate-500 mb-1">Gross Profit</p>
+      <p id="stat-profit" class="text-2xl font-bold text-green-600">฿0.00</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Top sellers -->
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">Top Selling Items</h2>
+      <div id="top-sellers"></div>
+    </div>
+    <!-- Sales log -->
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-3">Sales Log</h2>
+      <div id="sales-log" class="space-y-2 max-h-80 overflow-y-auto"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ── PRODUCT MODAL ─────────────────────────────────────── -->
+<div id="modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <h2 id="modal-title" class="font-bold text-lg mb-5">Add Product</h2>
+    <div class="space-y-3">
+      <input id="f-name"     type="text"   placeholder="Product name *"
+        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      <div class="grid grid-cols-2 gap-3">
+        <input id="f-cost"   type="number" step="any" min="0" placeholder="Cost *"
+          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        <input id="f-price"  type="number" step="any" min="0" placeholder="Sell price *"
+          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <input id="f-qty"    type="number" min="0" placeholder="Qty *"
+          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        <input id="f-low"    type="number" min="0" placeholder="Low-stock alert"
+          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="saveProduct()"
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">
+        Save
+      </button>
+      <button onclick="closeModal()"
+        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ─────────────────────────────────────────────── -->
+<div id="toast"
+  class="hidden fixed bottom-5 right-5 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50 transition-all">
+</div>
+
+<!-- ── SCRIPT ─────────────────────────────────────────────── -->
+<script>
+// ── Storage ───────────────────────────────────────────────
+const db = {
+  products: ()  => JSON.parse(localStorage.getItem('sp_products') || '[]'),
+  setProducts: d => localStorage.setItem('sp_products', JSON.stringify(d)),
+  sales: ()     => JSON.parse(localStorage.getItem('sp_sales') || '[]'),
+  setSales: d   => localStorage.setItem('sp_sales', JSON.stringify(d)),
+};
+
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const fmt  = n  => '฿' + Number(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const today = () => new Date().toISOString().slice(0, 10);
+
+// ── Tabs ──────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+    if (btn.dataset.tab === 'inventory') renderInventory();
+    if (btn.dataset.tab === 'report')    renderReport();
+    if (btn.dataset.tab === 'pos')       renderGrid();
+  });
+});
+
+// ── Toast ─────────────────────────────────────────────────
+function toast(msg, cls = 'bg-slate-800') {
+  const el = document.getElementById('toast');
+  el.className = `fixed bottom-5 right-5 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50 ${cls}`;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.add('hidden'), 2600);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INVENTORY
+// ═══════════════════════════════════════════════════════════
+let _editId = null;
+
+function renderInventory() {
+  const products = db.products();
+  const low = products.filter(p => p.qty <= p.lowStock);
+  const bar = document.getElementById('low-stock-bar');
+
+  bar.classList.toggle('hidden', !low.length);
+  if (low.length)
+    bar.innerHTML = '⚠ Low stock: ' + low.map(p => `<b>${p.name}</b> (${p.qty})`).join(', ');
+
+  const tbody = document.getElementById('inv-tbody');
+  if (!products.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">No products yet — click "+ Add Product"</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = products.map(p => `
+    <tr class="border-t hover:bg-slate-50 transition ${p.qty <= p.lowStock ? 'bg-amber-50/60' : ''}">
+      <td class="px-4 py-3 font-medium">
+        ${p.name}
+        ${p.qty <= p.lowStock
+          ? '<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Low</span>'
+          : ''}
+      </td>
+      <td class="px-4 py-3 text-right text-slate-500">${fmt(p.cost)}</td>
+      <td class="px-4 py-3 text-right font-semibold">${fmt(p.price)}</td>
+      <td class="px-4 py-3 text-right">${p.qty}</td>
+      <td class="px-4 py-3 text-right text-slate-400">${p.lowStock ?? '—'}</td>
+      <td class="px-4 py-3 text-right space-x-3">
+        <button onclick="openModal('${p.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">Edit</button>
+        <button onclick="deleteProduct('${p.id}')" class="text-red-400 hover:text-red-600 font-medium">Del</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openModal(id = null) {
+  _editId = id;
+  const p = id ? db.products().find(x => x.id === id) : {};
+  document.getElementById('modal-title').textContent = id ? 'Edit Product' : 'Add Product';
+  document.getElementById('f-name').value  = p?.name     ?? '';
+  document.getElementById('f-cost').value  = p?.cost     ?? '';
+  document.getElementById('f-price').value = p?.price    ?? '';
+  document.getElementById('f-qty').value   = p?.qty      ?? '';
+  document.getElementById('f-low').value   = p?.lowStock ?? '';
+  document.getElementById('modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('f-name').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  _editId = null;
+}
+
+// Close on backdrop click
+document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+function saveProduct() {
+  const name     = document.getElementById('f-name').value.trim();
+  const cost     = parseFloat(document.getElementById('f-cost').value);
+  const price    = parseFloat(document.getElementById('f-price').value);
+  const qty      = parseInt(document.getElementById('f-qty').value, 10);
+  const lowStock = parseInt(document.getElementById('f-low').value, 10) || 0;
+
+  if (!name || isNaN(cost) || isNaN(price) || isNaN(qty)) {
+    toast('Please fill in all required fields (*)', 'bg-red-500'); return;
+  }
+
+  const products = db.products();
+  if (_editId) {
+    const i = products.findIndex(p => p.id === _editId);
+    products[i] = { ...products[i], name, cost, price, qty, lowStock };
+    toast('Product updated', 'bg-green-600');
+  } else {
+    products.push({ id: uid(), name, cost, price, qty, lowStock });
+    toast('Product added', 'bg-green-600');
+  }
+
+  db.setProducts(products);
+  closeModal();
+  renderInventory();
+  renderGrid(); // refresh POS grid too
+}
+
+function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  db.setProducts(db.products().filter(p => p.id !== id));
+  renderInventory();
+  renderGrid();
+  toast('Product deleted');
+}
+
+// ═══════════════════════════════════════════════════════════
+// POS
+// ═══════════════════════════════════════════════════════════
+let cart = []; // [{productId, name, qty, price, cost}]
+
+function renderGrid(filter = '') {
+  const q = filter.toLowerCase();
+  const products = db.products().filter(p => p.name.toLowerCase().includes(q));
+  const grid = document.getElementById('product-grid');
+
+  if (!products.length) {
+    grid.innerHTML = `<p class="col-span-3 text-center py-12 text-slate-400">No products found</p>`;
+    return;
+  }
+
+  grid.innerHTML = products.map(p => {
+    const outOfStock = p.qty === 0;
+    return `
+      <button onclick="addToCart('${p.id}')"
+        class="bg-white rounded-2xl shadow hover:shadow-md hover:-translate-y-0.5 transition-all p-4 text-left border-2
+               ${outOfStock ? 'opacity-40 cursor-not-allowed border-transparent' : 'border-transparent hover:border-indigo-300'}"
+        ${outOfStock ? 'disabled' : ''}>
+        <p class="font-semibold leading-tight mb-1 line-clamp-2">${p.name}</p>
+        <p class="text-indigo-600 font-bold">${fmt(p.price)}</p>
+        <p class="text-xs text-slate-400 mt-1">Stock: ${p.qty}</p>
+      </button>`;
+  }).join('');
+}
+
+function addToCart(productId) {
+  const p = db.products().find(x => x.id === productId);
+  if (!p || p.qty === 0) return;
+
+  const item = cart.find(c => c.productId === productId);
+  if (item) {
+    if (item.qty >= p.qty) { toast('Not enough stock', 'bg-amber-500'); return; }
+    item.qty++;
+  } else {
+    cart.push({ productId, name: p.name, qty: 1, price: p.price, cost: p.cost });
+  }
+  renderCart();
+}
+
+function setCartQty(productId, delta) {
+  const p    = db.products().find(x => x.id === productId);
+  const item = cart.find(c => c.productId === productId);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) {
+    cart = cart.filter(c => c.productId !== productId);
+  } else if (p && item.qty > p.qty) {
+    item.qty = p.qty;
+    toast('Max stock reached', 'bg-amber-500');
+  }
+  renderCart();
+}
+
+function renderCart() {
+  const el    = document.getElementById('cart-items');
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+  el.innerHTML = cart.length
+    ? cart.map(i => `
+        <div class="flex items-center gap-2">
+          <span class="flex-1 leading-tight">${i.name}</span>
+          <div class="flex items-center gap-1 shrink-0">
+            <button onclick="setCartQty('${i.productId}',-1)"
+              class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold">−</button>
+            <span class="w-7 text-center font-semibold">${i.qty}</span>
+            <button onclick="setCartQty('${i.productId}',1)"
+              class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold">+</button>
+          </div>
+          <span class="font-semibold w-16 text-right shrink-0">${fmt(i.price * i.qty)}</span>
+        </div>`)
+        .join('')
+    : `<p class="text-slate-400 text-xs text-center mt-6">Cart is empty</p>`;
+
+  document.getElementById('cart-total').textContent = fmt(total);
+  calcChange();
+}
+
+function calcChange() {
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const paid  = parseFloat(document.getElementById('paid-input').value) || 0;
+  const el    = document.getElementById('change-display');
+
+  if (total === 0 || paid === 0) {
+    el.textContent = '—'; el.className = 'text-slate-400';
+  } else if (paid >= total) {
+    el.textContent = fmt(paid - total); el.className = 'text-green-600 font-semibold';
+  } else {
+    el.textContent = `Short ${fmt(total - paid)}`; el.className = 'text-red-500 font-semibold';
+  }
+}
+
+function checkout() {
+  if (!cart.length) { toast('Cart is empty', 'bg-amber-500'); return; }
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const paid  = parseFloat(document.getElementById('paid-input').value) || 0;
+  if (paid < total) { toast('Amount paid is insufficient', 'bg-red-500'); return; }
+
+  // Deduct stock from inventory
+  const products = db.products();
+  cart.forEach(item => {
+    const p = products.find(x => x.id === item.productId);
+    if (p) p.qty -= item.qty;
+  });
+  db.setProducts(products);
+
+  // Record sale
+  const now  = new Date();
+  const sale = {
+    id: uid(),
+    date:  now.toISOString().slice(0, 10),
+    time:  now.toTimeString().slice(0, 5),
+    items: cart.map(i => ({ ...i })),
+    total,
+    paid,
+    change: paid - total,
+  };
+  db.setSales([...db.sales(), sale]);
+
+  toast(`✓ Checkout complete — Change: ${fmt(sale.change)}`, 'bg-green-600');
+  clearCart();
+  renderGrid(); // refresh stock counts on product cards
+}
+
+function clearCart() {
+  cart = [];
+  document.getElementById('paid-input').value = '';
+  renderCart();
+}
+
+document.getElementById('pos-search').addEventListener('input', e => renderGrid(e.target.value));
+
+// ═══════════════════════════════════════════════════════════
+// REPORT
+// ═══════════════════════════════════════════════════════════
+function renderReport() {
+  const input = document.getElementById('report-date');
+  const date  = input.value || today();
+  if (!input.value) input.value = date;
+
+  const daySales = db.sales().filter(s => s.date === date);
+
+  const revenue = daySales.reduce((s, x) => s + x.total, 0);
+  const cost    = daySales.reduce((s, x) =>
+    s + x.items.reduce((ss, i) => ss + i.cost * i.qty, 0), 0);
+
+  document.getElementById('stat-revenue').textContent = fmt(revenue);
+  document.getElementById('stat-cost').textContent    = fmt(cost);
+  document.getElementById('stat-profit').textContent  = fmt(revenue - cost);
+
+  // Aggregate items sold
+  const map = {};
+  daySales.forEach(sale => sale.items.forEach(i => {
+    if (!map[i.name]) map[i.name] = { qty: 0, revenue: 0 };
+    map[i.name].qty     += i.qty;
+    map[i.name].revenue += i.price * i.qty;
+  }));
+  const top = Object.entries(map).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+
+  document.getElementById('top-sellers').innerHTML = top.length
+    ? top.map(([name, d], i) => `
+        <div class="flex items-center gap-3 py-1">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">${i + 1}</span>
+          <span class="flex-1">${name}</span>
+          <span class="text-slate-400 text-xs">${d.qty} sold</span>
+          <span class="font-semibold">${fmt(d.revenue)}</span>
+        </div>`).join('')
+    : `<p class="text-slate-400 text-xs text-center py-6">No sales on this date</p>`;
+
+  document.getElementById('sales-log').innerHTML = daySales.length
+    ? [...daySales].reverse().map(s => `
+        <div class="border rounded-xl p-3">
+          <div class="flex justify-between font-semibold mb-1">
+            <span class="text-slate-500">${s.time}</span>
+            <span>${fmt(s.total)}</span>
+          </div>
+          <div class="text-slate-500 text-xs space-y-0.5">
+            ${s.items.map(i => `<div>${i.name} × ${i.qty} = ${fmt(i.price * i.qty)}</div>`).join('')}
+          </div>
+        </div>`).join('')
+    : `<p class="text-slate-400 text-xs text-center py-6">No sales on this date</p>`;
+}
+
+// ── Init ──────────────────────────────────────────────────
+renderGrid();
+document.getElementById('report-date').value = today();
+</script>
+</body>
+</html>
