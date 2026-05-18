@@ -9,6 +9,15 @@
     .nav-btn { padding:.375rem 1rem; border-radius:9999px; font-size:.875rem; font-weight:500; color:rgba(255,255,255,.75); transition:all .15s; }
     .nav-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
     .nav-btn.active { background:#fff; color:#4338ca; }
+    .rtab { padding:.375rem 1rem; border-radius:9999px; font-size:.8125rem; font-weight:500; transition:all .15s; cursor:pointer; border:1px solid #e2e8f0; color:#64748b; }
+    .rtab.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+    /* Receipt print styles */
+    @media print {
+      body > *:not(#receipt-modal) { display:none !important; }
+      #receipt-modal { position:static !important; background:none !important; padding:0 !important; }
+      #receipt-box { box-shadow:none !important; border-radius:0 !important; max-width:100% !important; }
+      #receipt-actions { display:none !important; }
+    }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 text-sm">
@@ -18,9 +27,10 @@
   <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
     <span class="font-bold text-base tracking-widest">MY SHOP</span>
     <nav class="flex gap-1">
-      <button class="nav-btn active" data-tab="pos">POS</button>
-      <button class="nav-btn"        data-tab="inventory">Inventory</button>
-      <button class="nav-btn"        data-tab="report">Report</button>
+      <button class="nav-btn active"  data-tab="pos">POS</button>
+      <button class="nav-btn"         data-tab="inventory">Inventory</button>
+      <button class="nav-btn"         data-tab="customers">Customers</button>
+      <button class="nav-btn"         data-tab="report">Report</button>
     </nav>
   </div>
 </header>
@@ -32,13 +42,23 @@
     <!-- Product grid -->
     <section class="lg:col-span-2">
       <input id="pos-search" type="text" placeholder="Search products…"
-        class="w-full mb-3 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" />
+        class="w-full mb-3 border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" />
       <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
     </section>
 
     <!-- Cart -->
     <section class="bg-white rounded-2xl shadow p-4 flex flex-col gap-3 lg:sticky lg:top-[72px] h-fit">
       <h2 class="font-bold text-base border-b pb-2">Cart</h2>
+
+      <!-- Customer selector -->
+      <div class="flex items-center gap-2">
+        <label class="text-slate-500 shrink-0 w-20">Customer</label>
+        <select id="cart-customer"
+          class="flex-1 border rounded-xl px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
+          <option value="">— Walk-in —</option>
+        </select>
+      </div>
+
       <div id="cart-items" class="flex flex-col gap-2 min-h-[100px]">
         <p class="text-slate-400 text-xs text-center mt-6">Cart is empty</p>
       </div>
@@ -49,10 +69,10 @@
         <div class="flex items-center gap-2">
           <label class="text-slate-500 w-14 shrink-0">Paid</label>
           <input id="paid-input" type="number" min="0" step="any" placeholder="0.00"
-            class="flex-1 border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            class="flex-1 border rounded-xl px-2 py-1.5 text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
             oninput="calcChange()" />
         </div>
-        <div class="flex justify-between font-semibold" id="change-row">
+        <div class="flex justify-between font-semibold">
           <span class="text-slate-500">Change</span>
           <span id="change-display" class="text-slate-400">—</span>
         </div>
@@ -72,15 +92,12 @@
 <main id="tab-inventory" class="tab-page hidden max-w-5xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
     <h1 class="font-bold text-lg">Inventory</h1>
-    <button onclick="openModal()"
+    <button onclick="openProductModal()"
       class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">
       + Add Product
     </button>
   </div>
-
-  <!-- Low-stock alert banner -->
   <div id="low-stock-bar" class="hidden mb-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 text-amber-800"></div>
-
   <div class="bg-white rounded-2xl shadow overflow-x-auto">
     <table class="w-full">
       <thead class="bg-slate-50 text-xs uppercase text-slate-500">
@@ -98,98 +115,261 @@
   </div>
 </main>
 
-<!-- ── REPORT ─────────────────────────────────────────────── -->
-<main id="tab-report" class="tab-page hidden max-w-4xl mx-auto p-4">
+<!-- ── CUSTOMERS ──────────────────────────────────────────── -->
+<main id="tab-customers" class="tab-page hidden max-w-4xl mx-auto p-4">
   <div class="flex items-center justify-between mb-4">
-    <h1 class="font-bold text-lg">Daily Report</h1>
-    <input id="report-date" type="date"
-      class="border rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-      onchange="renderReport()" />
+    <h1 class="font-bold text-lg">Customers</h1>
+    <button onclick="openCustomerModal()"
+      class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">
+      + Add Customer
+    </button>
+  </div>
+  <div class="bg-white rounded-2xl shadow overflow-x-auto">
+    <table class="w-full">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+        <tr>
+          <th class="text-left px-4 py-3">Name</th>
+          <th class="text-left px-4 py-3">Phone</th>
+          <th class="text-left px-4 py-3">Note</th>
+          <th class="text-right px-4 py-3">Orders</th>
+          <th class="text-right px-4 py-3">Total Spent</th>
+          <th class="px-4 py-3 w-28"></th>
+        </tr>
+      </thead>
+      <tbody id="cust-tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- ── REPORT ─────────────────────────────────────────────── -->
+<main id="tab-report" class="tab-page hidden max-w-5xl mx-auto p-4">
+
+  <!-- Mode toggle: Daily / Monthly -->
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <div class="flex gap-2">
+      <button class="rtab active" id="mode-daily"   onclick="setReportMode('daily')">Daily</button>
+      <button class="rtab"        id="mode-monthly" onclick="setReportMode('monthly')">Monthly</button>
+    </div>
+    <div id="report-daily-ctrl">
+      <input id="report-date" type="date"
+        class="border rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+        onchange="renderDailyReport()" />
+    </div>
+    <div id="report-monthly-ctrl" class="hidden">
+      <input id="report-month" type="month"
+        class="border rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+        onchange="renderMonthlyReport()" />
+    </div>
   </div>
 
-  <!-- Stat cards -->
-  <div class="grid grid-cols-3 gap-4 mb-5">
-    <div class="bg-white rounded-2xl shadow p-4">
-      <p class="text-xs text-slate-500 mb-1">Revenue</p>
-      <p id="stat-revenue" class="text-2xl font-bold text-indigo-600">฿0.00</p>
+  <!-- ── Daily view ── -->
+  <div id="report-daily">
+    <div class="grid grid-cols-3 gap-4 mb-5">
+      <div class="bg-white rounded-2xl shadow p-4">
+        <p class="text-xs text-slate-500 mb-1">Revenue</p>
+        <p id="stat-revenue" class="text-2xl font-bold text-indigo-600">฿0.00</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-4">
+        <p class="text-xs text-slate-500 mb-1">Total Cost</p>
+        <p id="stat-cost" class="text-2xl font-bold text-slate-600">฿0.00</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-4">
+        <p class="text-xs text-slate-500 mb-1">Gross Profit</p>
+        <p id="stat-profit" class="text-2xl font-bold text-green-600">฿0.00</p>
+      </div>
     </div>
-    <div class="bg-white rounded-2xl shadow p-4">
-      <p class="text-xs text-slate-500 mb-1">Total Cost</p>
-      <p id="stat-cost" class="text-2xl font-bold text-slate-600">฿0.00</p>
-    </div>
-    <div class="bg-white rounded-2xl shadow p-4">
-      <p class="text-xs text-slate-500 mb-1">Gross Profit</p>
-      <p id="stat-profit" class="text-2xl font-bold text-green-600">฿0.00</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl shadow p-4">
+        <h2 class="font-semibold mb-3">Top Selling Items</h2>
+        <div id="top-sellers"></div>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-4">
+        <h2 class="font-semibold mb-3">Sales Log</h2>
+        <div id="sales-log" class="space-y-2 max-h-80 overflow-y-auto"></div>
+      </div>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <!-- Top sellers -->
-    <div class="bg-white rounded-2xl shadow p-4">
-      <h2 class="font-semibold mb-3">Top Selling Items</h2>
-      <div id="top-sellers"></div>
+  <!-- ── Monthly view ── -->
+  <div id="report-monthly" class="hidden">
+    <!-- Stats row -->
+    <div class="grid grid-cols-4 gap-4 mb-5">
+      <div class="bg-white rounded-2xl shadow p-4">
+        <p class="text-xs text-slate-500 mb-1">Revenue</p>
+        <p id="m-revenue" class="text-xl font-bold text-indigo-600">฿0.00</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-4">
+        <p class="text-xs text-slate-500 mb-1">Cost</p>
+        <p id="m-cost" class="text-xl font-bold text-slate-600">฿0.00</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-4">
+        <p class="text-xs text-slate-500 mb-1">Gross Profit</p>
+        <p id="m-profit" class="text-xl font-bold text-green-600">฿0.00</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-4">
+        <p class="text-xs text-slate-500 mb-1">Transactions</p>
+        <p id="m-txn" class="text-xl font-bold text-slate-700">0</p>
+      </div>
     </div>
-    <!-- Sales log -->
-    <div class="bg-white rounded-2xl shadow p-4">
-      <h2 class="font-semibold mb-3">Sales Log</h2>
-      <div id="sales-log" class="space-y-2 max-h-80 overflow-y-auto"></div>
+
+    <!-- Sub-tabs: by customer / by product -->
+    <div class="flex gap-2 mb-4">
+      <button class="rtab active" id="msub-cust" onclick="setMonthSubTab('cust')">By Customer</button>
+      <button class="rtab"        id="msub-prod" onclick="setMonthSubTab('prod')">By Product</button>
+    </div>
+
+    <!-- By Customer table -->
+    <div id="m-by-cust" class="bg-white rounded-2xl shadow overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+          <tr>
+            <th class="text-left px-4 py-3 w-10">#</th>
+            <th class="text-left px-4 py-3">Customer</th>
+            <th class="text-right px-4 py-3">Orders</th>
+            <th class="text-right px-4 py-3">Revenue</th>
+            <th class="text-right px-4 py-3">Profit</th>
+          </tr>
+        </thead>
+        <tbody id="m-cust-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- By Product table -->
+    <div id="m-by-prod" class="hidden bg-white rounded-2xl shadow overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+          <tr>
+            <th class="text-left px-4 py-3 w-10">#</th>
+            <th class="text-left px-4 py-3">Product</th>
+            <th class="text-right px-4 py-3">Qty Sold</th>
+            <th class="text-right px-4 py-3">Revenue</th>
+            <th class="text-right px-4 py-3">Cost</th>
+            <th class="text-right px-4 py-3">Profit</th>
+          </tr>
+        </thead>
+        <tbody id="m-prod-tbody"></tbody>
+      </table>
     </div>
   </div>
 </main>
 
 <!-- ── PRODUCT MODAL ─────────────────────────────────────── -->
-<div id="modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+<div id="product-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-    <h2 id="modal-title" class="font-bold text-lg mb-5">Add Product</h2>
+    <h2 id="prod-modal-title" class="font-bold text-lg mb-5">Add Product</h2>
     <div class="space-y-3">
-      <input id="f-name"     type="text"   placeholder="Product name *"
+      <input id="f-name"  type="text"   placeholder="Product name *"
         class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       <div class="grid grid-cols-2 gap-3">
-        <input id="f-cost"   type="number" step="any" min="0" placeholder="Cost *"
+        <input id="f-cost"  type="number" step="any" min="0" placeholder="Cost *"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        <input id="f-price"  type="number" step="any" min="0" placeholder="Sell price *"
+        <input id="f-price" type="number" step="any" min="0" placeholder="Sell price *"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       </div>
       <div class="grid grid-cols-2 gap-3">
-        <input id="f-qty"    type="number" min="0" placeholder="Qty *"
+        <input id="f-qty" type="number" min="0" placeholder="Qty *"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        <input id="f-low"    type="number" min="0" placeholder="Low-stock alert"
+        <input id="f-low" type="number" min="0" placeholder="Low-stock alert"
           class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       </div>
     </div>
     <div class="flex gap-3 mt-6">
       <button onclick="saveProduct()"
-        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">
-        Save
-      </button>
-      <button onclick="closeModal()"
-        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">
-        Cancel
-      </button>
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">Save</button>
+      <button onclick="closeProductModal()"
+        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CUSTOMER MODAL ─────────────────────────────────────── -->
+<div id="customer-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <h2 id="cust-modal-title" class="font-bold text-lg mb-5">Add Customer</h2>
+    <div class="space-y-3">
+      <input id="cf-name"  type="text" placeholder="Customer name *"
+        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      <input id="cf-phone" type="text" placeholder="Phone number"
+        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      <textarea id="cf-note" rows="2" placeholder="Note (address, etc.)"
+        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="saveCustomer()"
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">Save</button>
+      <button onclick="closeCustomerModal()"
+        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RECEIPT MODAL ──────────────────────────────────────── -->
+<div id="receipt-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+  <div id="receipt-box" class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+    <!-- Receipt header -->
+    <div class="text-center mb-4">
+      <p class="font-bold text-lg tracking-widest">MY SHOP</p>
+      <p id="r-datetime" class="text-xs text-slate-400 mt-0.5"></p>
+    </div>
+    <div class="border-t border-dashed pt-3 mb-3 space-y-0.5">
+      <div class="flex gap-2">
+        <span class="text-slate-500 w-20 shrink-0">Customer</span>
+        <span id="r-customer" class="font-medium"></span>
+      </div>
+    </div>
+    <!-- Items -->
+    <table class="w-full text-sm mb-3">
+      <thead class="text-xs text-slate-500 border-b">
+        <tr>
+          <th class="text-left pb-1">Item</th>
+          <th class="text-center pb-1 w-10">Qty</th>
+          <th class="text-right pb-1 w-20">Price</th>
+          <th class="text-right pb-1 w-20">Total</th>
+        </tr>
+      </thead>
+      <tbody id="r-items" class="divide-y divide-slate-100"></tbody>
+    </table>
+    <!-- Totals -->
+    <div class="border-t border-dashed pt-3 space-y-1.5">
+      <div class="flex justify-between font-bold text-base">
+        <span>Total</span><span id="r-total"></span>
+      </div>
+      <div class="flex justify-between text-slate-600">
+        <span>Paid</span><span id="r-paid"></span>
+      </div>
+      <div class="flex justify-between text-green-600 font-semibold">
+        <span>Change</span><span id="r-change"></span>
+      </div>
+    </div>
+    <div id="receipt-actions" class="flex gap-3 mt-5">
+      <button onclick="window.print()"
+        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition font-medium">Print</button>
+      <button onclick="closeReceipt()"
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">Done</button>
     </div>
   </div>
 </div>
 
 <!-- ── TOAST ─────────────────────────────────────────────── -->
-<div id="toast"
-  class="hidden fixed bottom-5 right-5 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50 transition-all">
-</div>
+<div id="toast" class="hidden fixed bottom-5 right-5 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50"></div>
 
-<!-- ── SCRIPT ─────────────────────────────────────────────── -->
 <script>
 // ── Storage ───────────────────────────────────────────────
 const db = {
-  products: ()  => JSON.parse(localStorage.getItem('sp_products') || '[]'),
-  setProducts: d => localStorage.setItem('sp_products', JSON.stringify(d)),
-  sales: ()     => JSON.parse(localStorage.getItem('sp_sales') || '[]'),
-  setSales: d   => localStorage.setItem('sp_sales', JSON.stringify(d)),
+  products:     () => JSON.parse(localStorage.getItem('sp_products')  || '[]'),
+  setProducts:  d  => localStorage.setItem('sp_products',  JSON.stringify(d)),
+  sales:        () => JSON.parse(localStorage.getItem('sp_sales')     || '[]'),
+  setSales:     d  => localStorage.setItem('sp_sales',     JSON.stringify(d)),
+  customers:    () => JSON.parse(localStorage.getItem('sp_customers') || '[]'),
+  setCustomers: d  => localStorage.setItem('sp_customers', JSON.stringify(d)),
 };
 
-const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const fmt  = n  => '฿' + Number(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const today = () => new Date().toISOString().slice(0, 10);
+const uid    = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const fmt    = n  => '฿' + Number(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const today  = () => new Date().toISOString().slice(0, 10);
+const ym     = () => new Date().toISOString().slice(0, 7); // YYYY-MM
 
-// ── Tabs ──────────────────────────────────────────────────
+// ── Tab switching ─────────────────────────────────────────
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
@@ -197,8 +377,9 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
     if (btn.dataset.tab === 'inventory') renderInventory();
-    if (btn.dataset.tab === 'report')    renderReport();
-    if (btn.dataset.tab === 'pos')       renderGrid();
+    if (btn.dataset.tab === 'customers') renderCustomers();
+    if (btn.dataset.tab === 'report')    renderDailyReport();
+    if (btn.dataset.tab === 'pos')       { renderGrid(); populateCustomerSelect(); }
   });
 });
 
@@ -215,62 +396,56 @@ function toast(msg, cls = 'bg-slate-800') {
 // ═══════════════════════════════════════════════════════════
 // INVENTORY
 // ═══════════════════════════════════════════════════════════
-let _editId = null;
+let _editProdId = null;
 
 function renderInventory() {
   const products = db.products();
   const low = products.filter(p => p.qty <= p.lowStock);
   const bar = document.getElementById('low-stock-bar');
-
   bar.classList.toggle('hidden', !low.length);
   if (low.length)
     bar.innerHTML = '⚠ Low stock: ' + low.map(p => `<b>${p.name}</b> (${p.qty})`).join(', ');
 
   const tbody = document.getElementById('inv-tbody');
   if (!products.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">No products yet — click "+ Add Product"</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">No products yet</td></tr>`;
     return;
   }
-
   tbody.innerHTML = products.map(p => `
     <tr class="border-t hover:bg-slate-50 transition ${p.qty <= p.lowStock ? 'bg-amber-50/60' : ''}">
       <td class="px-4 py-3 font-medium">
         ${p.name}
-        ${p.qty <= p.lowStock
-          ? '<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Low</span>'
-          : ''}
+        ${p.qty <= p.lowStock ? '<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Low</span>' : ''}
       </td>
       <td class="px-4 py-3 text-right text-slate-500">${fmt(p.cost)}</td>
       <td class="px-4 py-3 text-right font-semibold">${fmt(p.price)}</td>
       <td class="px-4 py-3 text-right">${p.qty}</td>
       <td class="px-4 py-3 text-right text-slate-400">${p.lowStock ?? '—'}</td>
       <td class="px-4 py-3 text-right space-x-3">
-        <button onclick="openModal('${p.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">Edit</button>
-        <button onclick="deleteProduct('${p.id}')" class="text-red-400 hover:text-red-600 font-medium">Del</button>
+        <button onclick="openProductModal('${p.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">Edit</button>
+        <button onclick="deleteProduct('${p.id}')"    class="text-red-400 hover:text-red-600 font-medium">Del</button>
       </td>
     </tr>`).join('');
 }
 
-function openModal(id = null) {
-  _editId = id;
+function openProductModal(id = null) {
+  _editProdId = id;
   const p = id ? db.products().find(x => x.id === id) : {};
-  document.getElementById('modal-title').textContent = id ? 'Edit Product' : 'Add Product';
+  document.getElementById('prod-modal-title').textContent = id ? 'Edit Product' : 'Add Product';
   document.getElementById('f-name').value  = p?.name     ?? '';
   document.getElementById('f-cost').value  = p?.cost     ?? '';
   document.getElementById('f-price').value = p?.price    ?? '';
   document.getElementById('f-qty').value   = p?.qty      ?? '';
   document.getElementById('f-low').value   = p?.lowStock ?? '';
-  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('product-modal').classList.remove('hidden');
   setTimeout(() => document.getElementById('f-name').focus(), 50);
 }
 
-function closeModal() {
-  document.getElementById('modal').classList.add('hidden');
-  _editId = null;
+function closeProductModal() {
+  document.getElementById('product-modal').classList.add('hidden');
+  _editProdId = null;
 }
-
-// Close on backdrop click
-document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('product-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeProductModal(); });
 
 function saveProduct() {
   const name     = document.getElementById('f-name').value.trim();
@@ -278,25 +453,22 @@ function saveProduct() {
   const price    = parseFloat(document.getElementById('f-price').value);
   const qty      = parseInt(document.getElementById('f-qty').value, 10);
   const lowStock = parseInt(document.getElementById('f-low').value, 10) || 0;
-
   if (!name || isNaN(cost) || isNaN(price) || isNaN(qty)) {
     toast('Please fill in all required fields (*)', 'bg-red-500'); return;
   }
-
   const products = db.products();
-  if (_editId) {
-    const i = products.findIndex(p => p.id === _editId);
+  if (_editProdId) {
+    const i = products.findIndex(p => p.id === _editProdId);
     products[i] = { ...products[i], name, cost, price, qty, lowStock };
     toast('Product updated', 'bg-green-600');
   } else {
     products.push({ id: uid(), name, cost, price, qty, lowStock });
     toast('Product added', 'bg-green-600');
   }
-
   db.setProducts(products);
-  closeModal();
+  closeProductModal();
   renderInventory();
-  renderGrid(); // refresh POS grid too
+  renderGrid();
 }
 
 function deleteProduct(id) {
@@ -308,27 +480,111 @@ function deleteProduct(id) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// CUSTOMERS
+// ═══════════════════════════════════════════════════════════
+let _editCustId = null;
+
+function renderCustomers() {
+  const customers = db.customers();
+  const sales     = db.sales();
+  const tbody     = document.getElementById('cust-tbody');
+
+  if (!customers.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">No customers yet</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = customers.map(c => {
+    const custSales   = sales.filter(s => s.customerId === c.id);
+    const totalSpent  = custSales.reduce((s, x) => s + x.total, 0);
+    return `
+      <tr class="border-t hover:bg-slate-50 transition">
+        <td class="px-4 py-3 font-medium">${c.name}</td>
+        <td class="px-4 py-3 text-slate-600">${c.phone || '—'}</td>
+        <td class="px-4 py-3 text-slate-500 max-w-[160px] truncate">${c.note || '—'}</td>
+        <td class="px-4 py-3 text-right">${custSales.length}</td>
+        <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(totalSpent)}</td>
+        <td class="px-4 py-3 text-right space-x-3">
+          <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">Edit</button>
+          <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 hover:text-red-600 font-medium">Del</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function openCustomerModal(id = null) {
+  _editCustId = id;
+  const c = id ? db.customers().find(x => x.id === id) : {};
+  document.getElementById('cust-modal-title').textContent = id ? 'Edit Customer' : 'Add Customer';
+  document.getElementById('cf-name').value  = c?.name  ?? '';
+  document.getElementById('cf-phone').value = c?.phone ?? '';
+  document.getElementById('cf-note').value  = c?.note  ?? '';
+  document.getElementById('customer-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('cf-name').focus(), 50);
+}
+
+function closeCustomerModal() {
+  document.getElementById('customer-modal').classList.add('hidden');
+  _editCustId = null;
+}
+document.getElementById('customer-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCustomerModal(); });
+
+function saveCustomer() {
+  const name  = document.getElementById('cf-name').value.trim();
+  const phone = document.getElementById('cf-phone').value.trim();
+  const note  = document.getElementById('cf-note').value.trim();
+  if (!name) { toast('Customer name is required', 'bg-red-500'); return; }
+
+  const customers = db.customers();
+  if (_editCustId) {
+    const i = customers.findIndex(c => c.id === _editCustId);
+    customers[i] = { ...customers[i], name, phone, note };
+    toast('Customer updated', 'bg-green-600');
+  } else {
+    customers.push({ id: uid(), name, phone, note });
+    toast('Customer added', 'bg-green-600');
+  }
+  db.setCustomers(customers);
+  closeCustomerModal();
+  renderCustomers();
+  populateCustomerSelect(); // keep POS dropdown in sync
+}
+
+function deleteCustomer(id) {
+  if (!confirm('Delete this customer?')) return;
+  db.setCustomers(db.customers().filter(c => c.id !== id));
+  renderCustomers();
+  populateCustomerSelect();
+  toast('Customer deleted');
+}
+
+// ═══════════════════════════════════════════════════════════
 // POS
 // ═══════════════════════════════════════════════════════════
 let cart = []; // [{productId, name, qty, price, cost}]
 
-function renderGrid(filter = '') {
-  const q = filter.toLowerCase();
-  const products = db.products().filter(p => p.name.toLowerCase().includes(q));
-  const grid = document.getElementById('product-grid');
+function populateCustomerSelect() {
+  const sel = document.getElementById('cart-customer');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Walk-in —</option>' +
+    db.customers().map(c => `<option value="${c.id}" ${cur === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+}
 
+function renderGrid(filter = '') {
+  const q        = filter.toLowerCase();
+  const products = db.products().filter(p => p.name.toLowerCase().includes(q));
+  const grid     = document.getElementById('product-grid');
   if (!products.length) {
     grid.innerHTML = `<p class="col-span-3 text-center py-12 text-slate-400">No products found</p>`;
     return;
   }
-
   grid.innerHTML = products.map(p => {
-    const outOfStock = p.qty === 0;
+    const oos = p.qty === 0;
     return `
       <button onclick="addToCart('${p.id}')"
         class="bg-white rounded-2xl shadow hover:shadow-md hover:-translate-y-0.5 transition-all p-4 text-left border-2
-               ${outOfStock ? 'opacity-40 cursor-not-allowed border-transparent' : 'border-transparent hover:border-indigo-300'}"
-        ${outOfStock ? 'disabled' : ''}>
+               ${oos ? 'opacity-40 cursor-not-allowed border-transparent' : 'border-transparent hover:border-indigo-300'}"
+        ${oos ? 'disabled' : ''}>
         <p class="font-semibold leading-tight mb-1 line-clamp-2">${p.name}</p>
         <p class="text-indigo-600 font-bold">${fmt(p.price)}</p>
         <p class="text-xs text-slate-400 mt-1">Stock: ${p.qty}</p>
@@ -337,9 +593,8 @@ function renderGrid(filter = '') {
 }
 
 function addToCart(productId) {
-  const p = db.products().find(x => x.id === productId);
+  const p    = db.products().find(x => x.id === productId);
   if (!p || p.qty === 0) return;
-
   const item = cart.find(c => c.productId === productId);
   if (item) {
     if (item.qty >= p.qty) { toast('Not enough stock', 'bg-amber-500'); return; }
@@ -367,7 +622,6 @@ function setCartQty(productId, delta) {
 function renderCart() {
   const el    = document.getElementById('cart-items');
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-
   el.innerHTML = cart.length
     ? cart.map(i => `
         <div class="flex items-center gap-2">
@@ -383,7 +637,6 @@ function renderCart() {
         </div>`)
         .join('')
     : `<p class="text-slate-400 text-xs text-center mt-6">Cart is empty</p>`;
-
   document.getElementById('cart-total').textContent = fmt(total);
   calcChange();
 }
@@ -392,7 +645,6 @@ function calcChange() {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const paid  = parseFloat(document.getElementById('paid-input').value) || 0;
   const el    = document.getElementById('change-display');
-
   if (total === 0 || paid === 0) {
     el.textContent = '—'; el.className = 'text-slate-400';
   } else if (paid >= total) {
@@ -408,7 +660,13 @@ function checkout() {
   const paid  = parseFloat(document.getElementById('paid-input').value) || 0;
   if (paid < total) { toast('Amount paid is insufficient', 'bg-red-500'); return; }
 
-  // Deduct stock from inventory
+  // Resolve customer
+  const custId   = document.getElementById('cart-customer').value;
+  const custName = custId
+    ? (db.customers().find(c => c.id === custId)?.name ?? 'Walk-in')
+    : 'Walk-in';
+
+  // Deduct stock
   const products = db.products();
   cart.forEach(item => {
     const p = products.find(x => x.id === item.productId);
@@ -416,53 +674,100 @@ function checkout() {
   });
   db.setProducts(products);
 
-  // Record sale
+  // Save sale record (includes customer)
   const now  = new Date();
   const sale = {
     id: uid(),
-    date:  now.toISOString().slice(0, 10),
-    time:  now.toTimeString().slice(0, 5),
-    items: cart.map(i => ({ ...i })),
+    date:         now.toISOString().slice(0, 10),
+    time:         now.toTimeString().slice(0, 5),
+    customerId:   custId   || null,
+    customerName: custName,
+    items:        cart.map(i => ({ ...i })),
     total,
     paid,
     change: paid - total,
   };
   db.setSales([...db.sales(), sale]);
 
-  toast(`✓ Checkout complete — Change: ${fmt(sale.change)}`, 'bg-green-600');
+  showReceipt(sale);
   clearCart();
-  renderGrid(); // refresh stock counts on product cards
+  renderGrid();
 }
 
 function clearCart() {
   cart = [];
   document.getElementById('paid-input').value = '';
+  document.getElementById('cart-customer').value = '';
   renderCart();
 }
 
 document.getElementById('pos-search').addEventListener('input', e => renderGrid(e.target.value));
 
+// ── Receipt ───────────────────────────────────────────────
+function showReceipt(sale) {
+  document.getElementById('r-datetime').textContent = `${sale.date}  ${sale.time}`;
+  document.getElementById('r-customer').textContent = sale.customerName;
+  document.getElementById('r-total').textContent    = fmt(sale.total);
+  document.getElementById('r-paid').textContent     = fmt(sale.paid);
+  document.getElementById('r-change').textContent   = fmt(sale.change);
+  document.getElementById('r-items').innerHTML = sale.items.map(i => `
+    <tr>
+      <td class="py-1 pr-2">${i.name}</td>
+      <td class="py-1 text-center text-slate-500">${i.qty}</td>
+      <td class="py-1 text-right text-slate-500">${fmt(i.price)}</td>
+      <td class="py-1 text-right font-medium">${fmt(i.price * i.qty)}</td>
+    </tr>`).join('');
+  document.getElementById('receipt-modal').classList.remove('hidden');
+}
+
+function closeReceipt() {
+  document.getElementById('receipt-modal').classList.add('hidden');
+}
+document.getElementById('receipt-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeReceipt(); });
+
 // ═══════════════════════════════════════════════════════════
 // REPORT
 // ═══════════════════════════════════════════════════════════
-function renderReport() {
+let _reportMode = 'daily';
+let _monthSubTab = 'cust';
+
+function setReportMode(mode) {
+  _reportMode = mode;
+  document.getElementById('report-daily').classList.toggle('hidden',   mode !== 'daily');
+  document.getElementById('report-monthly').classList.toggle('hidden', mode !== 'monthly');
+  document.getElementById('report-daily-ctrl').classList.toggle('hidden',   mode !== 'daily');
+  document.getElementById('report-monthly-ctrl').classList.toggle('hidden', mode !== 'monthly');
+  document.getElementById('mode-daily').classList.toggle('active',   mode === 'daily');
+  document.getElementById('mode-monthly').classList.toggle('active', mode === 'monthly');
+  if (mode === 'daily')   renderDailyReport();
+  if (mode === 'monthly') renderMonthlyReport();
+}
+
+function setMonthSubTab(sub) {
+  _monthSubTab = sub;
+  document.getElementById('m-by-cust').classList.toggle('hidden', sub !== 'cust');
+  document.getElementById('m-by-prod').classList.toggle('hidden', sub !== 'prod');
+  document.getElementById('msub-cust').classList.toggle('active', sub === 'cust');
+  document.getElementById('msub-prod').classList.toggle('active', sub === 'prod');
+}
+
+// Daily report (unchanged logic, customer name added to sales log)
+function renderDailyReport() {
   const input = document.getElementById('report-date');
   const date  = input.value || today();
   if (!input.value) input.value = date;
 
   const daySales = db.sales().filter(s => s.date === date);
-
-  const revenue = daySales.reduce((s, x) => s + x.total, 0);
-  const cost    = daySales.reduce((s, x) =>
+  const revenue  = daySales.reduce((s, x) => s + x.total, 0);
+  const cost     = daySales.reduce((s, x) =>
     s + x.items.reduce((ss, i) => ss + i.cost * i.qty, 0), 0);
 
   document.getElementById('stat-revenue').textContent = fmt(revenue);
   document.getElementById('stat-cost').textContent    = fmt(cost);
   document.getElementById('stat-profit').textContent  = fmt(revenue - cost);
 
-  // Aggregate items sold
   const map = {};
-  daySales.forEach(sale => sale.items.forEach(i => {
+  daySales.forEach(s => s.items.forEach(i => {
     if (!map[i.name]) map[i.name] = { qty: 0, revenue: 0 };
     map[i.name].qty     += i.qty;
     map[i.name].revenue += i.price * i.qty;
@@ -483,7 +788,8 @@ function renderReport() {
     ? [...daySales].reverse().map(s => `
         <div class="border rounded-xl p-3">
           <div class="flex justify-between font-semibold mb-1">
-            <span class="text-slate-500">${s.time}</span>
+            <span class="text-slate-400 font-normal">${s.time}</span>
+            <span class="text-xs text-indigo-500 font-medium">${s.customerName || 'Walk-in'}</span>
             <span>${fmt(s.total)}</span>
           </div>
           <div class="text-slate-500 text-xs space-y-0.5">
@@ -493,9 +799,74 @@ function renderReport() {
     : `<p class="text-slate-400 text-xs text-center py-6">No sales on this date</p>`;
 }
 
+// Monthly report — by customer + by product
+function renderMonthlyReport() {
+  const input = document.getElementById('report-month');
+  const month = input.value || ym();
+  if (!input.value) input.value = month;
+
+  // Filter sales whose date starts with YYYY-MM
+  const mSales  = db.sales().filter(s => s.date.startsWith(month));
+  const revenue = mSales.reduce((s, x) => s + x.total, 0);
+  const cost    = mSales.reduce((s, x) =>
+    s + x.items.reduce((ss, i) => ss + i.cost * i.qty, 0), 0);
+
+  document.getElementById('m-revenue').textContent = fmt(revenue);
+  document.getElementById('m-cost').textContent    = fmt(cost);
+  document.getElementById('m-profit').textContent  = fmt(revenue - cost);
+  document.getElementById('m-txn').textContent     = mSales.length;
+
+  // Aggregate by customer
+  const custMap = {};
+  mSales.forEach(s => {
+    const key = s.customerId || '__walkin__';
+    const lbl = s.customerName || 'Walk-in';
+    if (!custMap[key]) custMap[key] = { name: lbl, orders: 0, revenue: 0, profit: 0 };
+    custMap[key].orders++;
+    custMap[key].revenue += s.total;
+    custMap[key].profit  += s.total - s.items.reduce((ss, i) => ss + i.cost * i.qty, 0);
+  });
+  const custRows = Object.values(custMap).sort((a, b) => b.revenue - a.revenue);
+
+  document.getElementById('m-cust-tbody').innerHTML = custRows.length
+    ? custRows.map((c, i) => `
+        <tr class="border-t hover:bg-slate-50">
+          <td class="px-4 py-3 text-slate-400">${i + 1}</td>
+          <td class="px-4 py-3 font-medium">${c.name}</td>
+          <td class="px-4 py-3 text-right">${c.orders}</td>
+          <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(c.revenue)}</td>
+          <td class="px-4 py-3 text-right text-green-600">${fmt(c.profit)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="5" class="text-center py-8 text-slate-400">No sales this month</td></tr>`;
+
+  // Aggregate by product
+  const prodMap = {};
+  mSales.forEach(s => s.items.forEach(i => {
+    if (!prodMap[i.name]) prodMap[i.name] = { qty: 0, revenue: 0, cost: 0 };
+    prodMap[i.name].qty     += i.qty;
+    prodMap[i.name].revenue += i.price * i.qty;
+    prodMap[i.name].cost    += i.cost  * i.qty;
+  }));
+  const prodRows = Object.entries(prodMap).sort((a, b) => b[1].revenue - a[1].revenue);
+
+  document.getElementById('m-prod-tbody').innerHTML = prodRows.length
+    ? prodRows.map(([name, d], i) => `
+        <tr class="border-t hover:bg-slate-50">
+          <td class="px-4 py-3 text-slate-400">${i + 1}</td>
+          <td class="px-4 py-3 font-medium">${name}</td>
+          <td class="px-4 py-3 text-right">${d.qty}</td>
+          <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(d.revenue)}</td>
+          <td class="px-4 py-3 text-right text-slate-500">${fmt(d.cost)}</td>
+          <td class="px-4 py-3 text-right text-green-600">${fmt(d.revenue - d.cost)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="6" class="text-center py-8 text-slate-400">No sales this month</td></tr>`;
+}
+
 // ── Init ──────────────────────────────────────────────────
 renderGrid();
-document.getElementById('report-date').value = today();
+populateCustomerSelect();
+document.getElementById('report-date').value  = today();
+document.getElementById('report-month').value = ym();
 </script>
 </body>
 </html>
