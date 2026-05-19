@@ -5,61 +5,180 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#4338ca" />
+  <meta name="theme-color" content="#4f46e5" />
   <title>ร้านของฉัน</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firebase SDK (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
     input, select, textarea { font-size: 16px !important; }
-    .nav-btn  { padding:.375rem 1rem; border-radius:9999px; font-size:.875rem; font-weight:500; color:rgba(255,255,255,.75); transition:all .15s; }
-    .nav-btn:hover  { background:rgba(255,255,255,.15); color:#fff; }
-    .nav-btn.active { background:#fff; color:#4338ca; }
-    .rtab { padding:.375rem 1rem; border-radius:9999px; font-size:.8125rem; font-weight:500; transition:all .15s; cursor:pointer; border:1px solid #e2e8f0; color:#64748b; }
-    .rtab.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
-    .mob-nav { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 4px; font-size:11px; font-weight:500; color:#94a3b8; transition:color .15s; -webkit-tap-highlight-color:transparent; }
-    .mob-nav.active { color:#4338ca; }
-    .mob-nav svg { width:22px; height:22px; }
-    @media (max-width:1023px) {
-      .modal-wrap { align-items:flex-end !important; padding:0 !important; }
-      .modal-inner { border-radius:20px 20px 0 0 !important; max-width:100% !important; max-height:92vh; overflow-y:auto; }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    button { min-height: 36px; }
+    @media (max-width: 1023px) { button { min-height: 44px; } }
+    @media (max-width: 1023px) {
+      .modal-wrap { align-items: flex-end !important; padding: 0 !important; }
+      .modal-inner { border-radius: 20px 20px 0 0 !important; max-width: 100% !important; max-height: 92vh; overflow-y: auto; }
     }
-    .safe-bottom { padding-bottom:env(safe-area-inset-bottom,0px); }
-    button { min-height:36px; }
-    @media (max-width:1023px) { button { min-height:44px; } }
+    .cart-panel { transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1); }
+    .cart-panel.open { transform: translateX(0); }
+    .status-pending   { background:#fef3c7; color:#92400e; }
+    .status-confirmed { background:#d1fae5; color:#065f46; }
+    .status-cancelled { background:#fee2e2; color:#991b1b; }
+    .prod-img { width:100%; aspect-ratio:1/1; object-fit:cover; }
+    .prod-placeholder { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#cbd5e1; }
+    .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .admin-tab { padding:.3rem 1rem; border-radius:9999px; font-size:.875rem; font-weight:500; color:rgba(255,255,255,.7); transition:all .15s; background:none; border:none; }
+    .admin-tab:hover { background:rgba(255,255,255,.15); color:#fff; }
+    .admin-tab.active { background:#fff; color:#4338ca; }
   </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans text-slate-800 text-sm">
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800 text-sm">
 
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: เข้าสู่ระบบ
-══════════════════════════════════════════════════════ -->
-<div id="screen-login" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-50 to-slate-100">
+<!-- ════════════════════════════════════════════
+     SCREEN: ร้านค้า (ลูกค้า — ไม่ต้อง login)
+════════════════════════════════════════════ -->
+<div id="screen-customer">
+  <header class="bg-white border-b border-slate-100 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+      <span class="font-bold text-lg text-indigo-700">ร้านของฉัน</span>
+      <button onclick="openCart()" class="relative flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-4 py-2 rounded-full font-medium transition text-sm">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        ตะกร้า
+        <span id="cart-badge" class="hidden absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1 font-bold"></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-4 pb-20">
+    <input id="store-search" type="text" placeholder="ค้นหาสินค้า…"
+      class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm"
+      oninput="renderStore(this.value)" />
+    <div id="store-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+  </main>
+
+  <!-- Cart overlay -->
+  <div id="cart-overlay" class="hidden fixed inset-0 bg-black/40 z-40" onclick="closeCart()"></div>
+
+  <!-- Cart panel -->
+  <aside id="cart-panel" class="cart-panel fixed top-0 right-0 h-full w-full sm:w-96 bg-white z-50 flex flex-col shadow-2xl">
+    <div class="flex items-center justify-between px-5 py-4 border-b">
+      <h2 class="font-bold text-base">ตะกร้าสินค้า</h2>
+      <button onclick="closeCart()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="cart-items" class="flex-1 overflow-y-auto px-5 py-3 space-y-3"></div>
+    <div class="border-t px-5 py-4 space-y-3 safe-bottom bg-white">
+      <div class="flex justify-between items-center font-bold text-base">
+        <span>ยอดรวม</span>
+        <span id="cart-total" class="text-indigo-600">฿0.00</span>
+      </div>
+      <button onclick="openCheckout()"
+        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl transition">
+        สั่งซื้อเลย
+      </button>
+    </div>
+  </aside>
+
+  <!-- Checkout modal -->
+  <div id="checkout-modal" class="modal-wrap hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div class="modal-inner bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <h3 class="font-bold text-lg mb-4">ข้อมูลจัดส่ง</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-medium text-slate-500 mb-1 block">ชื่อ-นามสกุล *</label>
+          <input id="co-name" type="text" placeholder="ชื่อผู้รับสินค้า"
+            class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-500 mb-1 block">ที่อยู่จัดส่ง *</label>
+          <textarea id="co-address" rows="3" placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"
+            class="w-full border rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-500 mb-1 block">เบอร์โทรศัพท์ *</label>
+          <input id="co-phone" type="tel" placeholder="08x-xxx-xxxx"
+            class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-500 mb-1 block">หมายเหตุ</label>
+          <input id="co-note" type="text" placeholder="เพิ่มเติม (ถ้ามี)"
+            class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+        </div>
+      </div>
+      <div class="mt-4 bg-slate-50 rounded-xl p-3 space-y-1">
+        <div class="flex justify-between text-sm text-slate-500"><span>ยอดสินค้า</span><span id="co-subtotal">฿0.00</span></div>
+        <div class="flex justify-between font-bold border-t pt-2"><span>ยอดรวม</span><span class="text-indigo-600" id="co-total">฿0.00</span></div>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="closeCheckout()" class="flex-1 border rounded-xl py-2.5 font-medium text-slate-600 hover:bg-slate-50 transition">ยกเลิก</button>
+        <button onclick="submitOrder()" id="submit-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition">ยืนยันสั่งซื้อ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success modal -->
+  <div id="success-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <p class="font-bold text-xl mb-1">สั่งซื้อเรียบร้อย!</p>
+      <p class="text-slate-400 text-sm mb-1">หมายเลขคำสั่งซื้อของคุณ</p>
+      <p id="success-orderno" class="font-bold text-indigo-600 text-xl mb-4 font-mono"></p>
+      <p class="text-slate-400 text-xs mb-6">ทีมงานจะติดต่อกลับตามเบอร์ที่ให้ไว้</p>
+      <button onclick="closeSuccess()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl transition">
+        ช้อปปิ้งต่อ
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin link (subtle footer) -->
+  <div class="fixed bottom-0 inset-x-0 flex justify-end pointer-events-none safe-bottom pb-1 pr-3">
+    <button onclick="showAdminLogin()" class="pointer-events-auto text-xs text-slate-300 hover:text-slate-400 transition px-2 py-1">
+      Admin
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: Admin Login
+════════════════════════════════════════════ -->
+<div id="screen-login" class="hidden min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-50 to-slate-100">
   <div class="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8">
     <div class="text-center mb-8">
-      <p class="text-3xl font-bold text-indigo-700 mb-1">ร้านของฉัน</p>
-      <p class="text-slate-400 text-sm">กรุณาเข้าสู่ระบบ</p>
+      <div class="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <p class="text-xl font-bold text-slate-800">เข้าสู่ระบบ Admin</p>
     </div>
     <div class="space-y-3">
       <input id="login-username" type="text" placeholder="ชื่อผู้ใช้"
-        class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
       <input id="login-password" type="password" placeholder="รหัสผ่าน"
-        class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300"
         onkeydown="if(event.key==='Enter') doLogin()" />
       <button id="login-btn" onclick="doLogin()"
         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">
         เข้าสู่ระบบ
       </button>
+      <button onclick="showScreen('customer')" class="w-full text-sm text-slate-400 hover:text-slate-600 transition py-1">
+        ← กลับหน้าร้าน
+      </button>
     </div>
-    <!-- แสดงเฉพาะตอนยังไม่มีผู้ใช้ในระบบ -->
+    <!-- Bootstrap: สร้าง admin ครั้งแรก -->
     <div id="first-user-box" class="hidden mt-6 border-t pt-5">
-      <p class="text-xs text-slate-400 text-center mb-3">ยังไม่มีผู้ใช้ในระบบ — สร้างบัญชี Admin ก่อนใช้งาน</p>
+      <p class="text-xs text-slate-400 text-center mb-3">ยังไม่มีผู้ใช้ในระบบ — สร้างบัญชี Admin ก่อน</p>
       <div class="space-y-2">
-        <input id="fu-username" type="text" value="admin" placeholder="ชื่อผู้ใช้"
-          class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        <input id="fu-username" type="text" value="admin" class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <input id="fu-password" type="password" placeholder="รหัสผ่าน (อย่างน้อย 4 ตัว)"
-          class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
         <button onclick="createFirstUser()"
           class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition">
           สร้างบัญชี Admin
@@ -69,393 +188,187 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: แอปหลัก
-══════════════════════════════════════════════════════ -->
-<div id="screen-app" class="hidden">
-
-<!-- Header -->
-<header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
-  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-    <span class="font-bold text-base tracking-widest">ร้านของฉัน</span>
-    <div class="flex items-center gap-2">
-      <!-- Desktop nav -->
-      <nav class="hidden lg:flex gap-1 mr-2">
-        <button class="nav-btn active" data-tab="order">ใบสั่งซื้อ</button>
-        <button class="nav-btn"        data-tab="inventory">คลังสินค้า</button>
-        <button class="nav-btn"        data-tab="customers">ลูกค้า</button>
-        <button class="nav-btn"        data-tab="report">รายงาน</button>
-      </nav>
-      <!-- User + Logout -->
-      <div class="flex items-center gap-2 border-l border-indigo-500 pl-3">
-        <span id="header-user" class="text-xs text-indigo-200 hidden sm:inline"></span>
-        <button onclick="openUserModal()" title="สร้างผู้ใช้"
-          class="flex items-center gap-1 text-xs text-indigo-200 hover:text-white transition px-2 py-1 rounded-lg hover:bg-indigo-600">
+<!-- ════════════════════════════════════════════
+     SCREEN: Admin Panel
+════════════════════════════════════════════ -->
+<div id="screen-admin" class="hidden">
+  <header class="bg-indigo-700 text-white sticky top-0 z-40 shadow-lg">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="showScreen('customer')" title="หน้าร้าน" class="text-indigo-200 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </button>
+        <span class="font-bold">Admin</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <span id="header-user" class="text-xs text-indigo-200 mr-1 hidden sm:inline"></span>
+        <button onclick="openUserModal()" title="เพิ่มผู้ใช้" class="flex items-center gap-1 text-xs text-indigo-200 hover:text-white px-2 py-1 rounded-lg hover:bg-indigo-600 transition">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
           </svg>
           <span class="hidden sm:inline">เพิ่มผู้ใช้</span>
         </button>
-        <button onclick="doLogout()" title="ออกจากระบบ"
-          class="flex items-center gap-1 text-xs text-indigo-200 hover:text-white transition px-2 py-1 rounded-lg hover:bg-indigo-600">
+        <button onclick="doLogout()" class="flex items-center gap-1 text-xs text-indigo-200 hover:text-white px-2 py-1 rounded-lg hover:bg-indigo-600 transition">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
           </svg>
           <span class="hidden sm:inline">ออก</span>
         </button>
       </div>
     </div>
-  </div>
-</header>
+    <div class="max-w-5xl mx-auto px-4 flex gap-1 pb-2">
+      <button class="admin-tab active" data-atab="products">สินค้า</button>
+      <button class="admin-tab" data-atab="orders">ออเดอร์</button>
+    </div>
+  </header>
 
-<!-- Bottom Nav (mobile) -->
-<nav class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 shadow-lg z-40 flex safe-bottom">
-  <button class="mob-nav active" data-tab="order">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-    ใบสั่งซื้อ
-  </button>
-  <button class="mob-nav" data-tab="inventory">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-    คลังสินค้า
-  </button>
-  <button class="mob-nav" data-tab="customers">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-    ลูกค้า
-  </button>
-  <button class="mob-nav" data-tab="report">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-    รายงาน
-  </button>
-</nav>
+  <!-- Tab: สินค้า -->
+  <main id="atab-products" class="admin-page max-w-5xl mx-auto p-4 pb-24">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="font-bold text-lg">จัดการสินค้า</h1>
+      <button onclick="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium text-sm">+ เพิ่มสินค้า</button>
+    </div>
+    <div id="admin-product-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+  </main>
 
-<!-- ── ใบสั่งซื้อ ──────────────────────────────────────── -->
-<main id="tab-order" class="tab-page max-w-7xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
-  <div class="lg:hidden flex rounded-xl overflow-hidden border border-slate-200 mb-3 bg-white shadow-sm">
-    <button id="mob-products-tab" onclick="setMobView('products')"
-      class="flex-1 py-3 text-sm font-semibold bg-indigo-600 text-white transition">เลือกสินค้า</button>
-    <button id="mob-cart-tab" onclick="setMobView('cart')"
-      class="flex-1 py-3 text-sm font-semibold text-slate-600 transition relative">
-      รายการ
-      <span id="mob-badge" class="hidden absolute top-1.5 right-4 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1"></span>
-    </button>
-  </div>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 items-start">
-    <section id="mob-products-view" class="lg:col-span-2 space-y-3">
-      <input id="pos-search" type="text" placeholder="ค้นหาสินค้า…"
-        class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" />
-      <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
-      <div class="mt-2">
-        <h2 class="font-bold text-sm mb-2 text-slate-600 px-1">รายการสั่งซื้อล่าสุด</h2>
-        <div id="order-history" class="space-y-2"></div>
+  <!-- Tab: ออเดอร์ -->
+  <main id="atab-orders" class="admin-page hidden max-w-5xl mx-auto p-4 pb-24">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="font-bold text-lg">ออเดอร์</h1>
+      <select id="order-filter" onchange="renderAdminOrders()" class="border rounded-xl px-3 py-2 bg-white focus:outline-none text-sm">
+        <option value="">ทั้งหมด</option>
+        <option value="pending">รอดำเนินการ</option>
+        <option value="confirmed">ยืนยันแล้ว</option>
+        <option value="cancelled">ยกเลิก</option>
+      </select>
+    </div>
+    <div id="admin-order-list" class="space-y-3"></div>
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════ -->
+
+<!-- Modal: เพิ่ม/แก้ไขสินค้า -->
+<div id="product-modal" class="modal-wrap hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="modal-inner bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <h3 id="prod-modal-title" class="font-bold text-lg mb-4">เพิ่มสินค้า</h3>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-medium text-slate-500 mb-1 block">ชื่อสินค้า *</label>
+        <input id="f-name" type="text" placeholder="ชื่อสินค้า"
+          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
       </div>
-    </section>
-    <section id="mob-cart-view" class="space-y-3 lg:sticky lg:top-[72px]">
-      <div class="bg-white rounded-2xl shadow p-4 flex flex-col gap-3">
-        <h2 class="font-bold text-base border-b pb-2">รายการสินค้า</h2>
-        <div class="space-y-1">
-          <label class="text-slate-500 text-xs font-medium">ลูกค้า</label>
-          <select id="order-customer"
-            class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
-            <option value="">— ลูกค้าทั่วไป —</option>
-          </select>
-        </div>
-        <div id="order-items" class="flex flex-col gap-2 min-h-[80px]">
-          <p class="text-slate-400 text-xs text-center mt-4">เลือกสินค้าจากรายการ</p>
-        </div>
-        <div class="flex items-center gap-2 border-t pt-3">
-          <label class="text-slate-500 shrink-0 text-xs w-20">ส่วนลด (฿)</label>
-          <input id="discount-input" type="number" min="0" step="any" placeholder="0"
-            class="flex-1 border rounded-xl px-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            oninput="renderOrderSummary()" />
-        </div>
-        <div class="bg-slate-50 rounded-xl p-3 space-y-1.5 text-sm">
-          <div class="flex justify-between text-slate-600"><span>ยอดสินค้า</span><span id="subtotal-display">฿0.00</span></div>
-          <div class="flex justify-between text-slate-600"><span>ส่วนลด</span><span id="discount-display" class="text-red-500">-฿0.00</span></div>
-          <div class="flex justify-between font-bold text-base border-t pt-2"><span>ยอดสุทธิ</span><span id="total-display" class="text-indigo-600">฿0.00</span></div>
-        </div>
-        <div class="space-y-1">
-          <label class="text-slate-500 text-xs font-medium">หมายเหตุ</label>
-          <textarea id="order-note" rows="2" placeholder="หมายเหตุ / เงื่อนไข…"
-            class="w-full border rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
-        </div>
-        <button onclick="createOrder()"
-          class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
-          </svg>
-          สร้างใบสั่งซื้อ
-        </button>
-        <button onclick="clearOrder()" class="text-xs text-slate-400 hover:text-red-500 transition text-center py-1">ล้างรายการ</button>
+      <div>
+        <label class="text-xs font-medium text-slate-500 mb-1 block">ราคา (฿) *</label>
+        <input id="f-price" type="number" min="0" step="any" placeholder="0.00"
+          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
       </div>
-    </section>
+      <div>
+        <label class="text-xs font-medium text-slate-500 mb-1 block">คำอธิบาย</label>
+        <textarea id="f-desc" rows="2" placeholder="รายละเอียดสินค้า"
+          class="w-full border rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-500 mb-1 block">URL รูปภาพ</label>
+        <input id="f-image" type="url" placeholder="https://..."
+          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          oninput="previewImg(this.value)" />
+        <div id="img-preview-wrap" class="hidden mt-2">
+          <img id="img-preview" src="" alt="" class="w-24 h-24 object-cover rounded-xl border border-slate-200" />
+        </div>
+      </div>
+      <label class="flex items-center gap-3 cursor-pointer">
+        <input id="f-available" type="checkbox" checked class="w-4 h-4 accent-indigo-600" />
+        <span class="text-sm text-slate-600">แสดงในร้าน (พร้อมขาย)</span>
+      </label>
+    </div>
+    <div class="flex gap-2 mt-5">
+      <button onclick="closeProductModal()" class="flex-1 border rounded-xl py-2.5 font-medium text-slate-600 hover:bg-slate-50 transition">ยกเลิก</button>
+      <button onclick="saveProduct()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition">บันทึก</button>
+    </div>
   </div>
-</main>
+</div>
 
-<!-- ── คลังสินค้า ─────────────────────────────────────── -->
-<main id="tab-inventory" class="tab-page hidden max-w-5xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="font-bold text-lg">คลังสินค้า</h1>
-    <button onclick="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">+ เพิ่มสินค้า</button>
-  </div>
-  <div id="low-stock-bar" class="hidden mb-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 text-amber-800 text-sm"></div>
-  <div class="hidden lg:block bg-white rounded-2xl shadow overflow-x-auto">
-    <table class="w-full">
-      <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-        <tr>
-          <th class="text-left px-4 py-3">ชื่อสินค้า</th>
-          <th class="text-right px-4 py-3">ต้นทุน</th>
-          <th class="text-right px-4 py-3">ราคาขาย</th>
-          <th class="text-right px-4 py-3">คงเหลือ</th>
-          <th class="text-right px-4 py-3">แจ้งเตือน</th>
-          <th class="px-4 py-3 w-28"></th>
-        </tr>
-      </thead>
-      <tbody id="inv-tbody-desktop"></tbody>
-    </table>
-  </div>
-  <div id="inv-cards-mobile" class="lg:hidden space-y-2"></div>
-</main>
-
-<!-- ── ลูกค้า ─────────────────────────────────────────── -->
-<main id="tab-customers" class="tab-page hidden max-w-4xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="font-bold text-lg">รายการลูกค้า</h1>
-    <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">+ เพิ่มลูกค้า</button>
-  </div>
-  <div class="hidden lg:block bg-white rounded-2xl shadow overflow-x-auto">
-    <table class="w-full">
-      <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-        <tr>
-          <th class="text-left px-4 py-3">ชื่อ</th>
-          <th class="text-left px-4 py-3">เบอร์โทร</th>
-          <th class="text-left px-4 py-3">หมายเหตุ</th>
-          <th class="text-right px-4 py-3">ใบสั่งซื้อ</th>
-          <th class="text-right px-4 py-3">ยอดรวม</th>
-          <th class="px-4 py-3 w-28"></th>
-        </tr>
-      </thead>
-      <tbody id="cust-tbody-desktop"></tbody>
-    </table>
-  </div>
-  <div id="cust-cards-mobile" class="lg:hidden space-y-2"></div>
-</main>
-
-<!-- ── รายงาน ─────────────────────────────────────────── -->
-<main id="tab-report" class="tab-page hidden max-w-5xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
-  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+<!-- Modal: แก้ไขออเดอร์ -->
+<div id="order-modal" class="modal-wrap hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="modal-inner bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-lg">ออเดอร์</h3>
+      <span id="om-orderno" class="font-mono text-indigo-600 font-bold text-sm"></span>
+    </div>
+    <div class="bg-slate-50 rounded-xl p-3 mb-4 space-y-1 text-sm">
+      <p><span class="text-slate-400">ชื่อ: </span><span id="om-name" class="font-medium"></span></p>
+      <p><span class="text-slate-400">ที่อยู่: </span><span id="om-address"></span></p>
+      <p><span class="text-slate-400">โทร: </span><span id="om-phone"></span></p>
+      <p id="om-note-row" class="hidden"><span class="text-slate-400">หมายเหตุ: </span><span id="om-note"></span></p>
+    </div>
+    <div id="om-items" class="border rounded-xl p-3 mb-4 space-y-1 text-sm max-h-40 overflow-y-auto"></div>
+    <div class="space-y-2 mb-4">
+      <div class="flex justify-between text-sm"><span class="text-slate-500">ยอดสินค้า</span><span id="om-subtotal" class="font-medium"></span></div>
+      <div class="flex items-center gap-3 text-sm">
+        <span class="text-slate-500 shrink-0">ส่วนลด (฿)</span>
+        <input id="om-discount" type="number" min="0" step="any" placeholder="0"
+          class="flex-1 border rounded-xl px-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          oninput="updateOmTotal()" />
+      </div>
+      <div class="flex justify-between font-bold border-t pt-2"><span>ยอดสุทธิ</span><span id="om-total" class="text-indigo-600"></span></div>
+    </div>
+    <div class="mb-4">
+      <label class="text-xs font-medium text-slate-500 mb-1 block">สถานะ</label>
+      <select id="om-status" class="w-full border rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        <option value="pending">รอดำเนินการ</option>
+        <option value="confirmed">ยืนยันแล้ว</option>
+        <option value="cancelled">ยกเลิก</option>
+      </select>
+    </div>
     <div class="flex gap-2">
-      <button class="rtab active" id="mode-daily"   onclick="setReportMode('daily')">รายวัน</button>
-      <button class="rtab"        id="mode-monthly" onclick="setReportMode('monthly')">รายเดือน</button>
-    </div>
-    <div id="report-daily-ctrl">
-      <input id="report-date" type="date" class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" onchange="renderDailyReport()" />
-    </div>
-    <div id="report-monthly-ctrl" class="hidden">
-      <input id="report-month" type="month" class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" onchange="renderMonthlyReport()" />
-    </div>
-  </div>
-  <div id="report-daily">
-    <div class="grid grid-cols-3 gap-3 mb-4">
-      <div class="bg-white rounded-2xl shadow p-3 lg:p-4"><p class="text-xs text-slate-500 mb-1">มูลค่าสั่งซื้อ</p><p id="stat-revenue" class="text-lg lg:text-2xl font-bold text-indigo-600">฿0.00</p></div>
-      <div class="bg-white rounded-2xl shadow p-3 lg:p-4"><p class="text-xs text-slate-500 mb-1">ต้นทุน</p><p id="stat-cost" class="text-lg lg:text-2xl font-bold text-slate-600">฿0.00</p></div>
-      <div class="bg-white rounded-2xl shadow p-3 lg:p-4"><p class="text-xs text-slate-500 mb-1">กำไร</p><p id="stat-profit" class="text-lg lg:text-2xl font-bold text-green-600">฿0.00</p></div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-      <div class="bg-white rounded-2xl shadow p-4"><h2 class="font-semibold mb-3">สินค้าสั่งซื้อมากสุด</h2><div id="top-sellers"></div></div>
-      <div class="bg-white rounded-2xl shadow p-4"><h2 class="font-semibold mb-3">บันทึกใบสั่งซื้อ</h2><div id="sales-log" class="space-y-2 max-h-80 overflow-y-auto"></div></div>
-    </div>
-  </div>
-  <div id="report-monthly" class="hidden">
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-      <div class="bg-white rounded-2xl shadow p-3 lg:p-4"><p class="text-xs text-slate-500 mb-1">มูลค่าสั่งซื้อ</p><p id="m-revenue" class="text-lg font-bold text-indigo-600">฿0.00</p></div>
-      <div class="bg-white rounded-2xl shadow p-3 lg:p-4"><p class="text-xs text-slate-500 mb-1">ต้นทุน</p><p id="m-cost" class="text-lg font-bold text-slate-600">฿0.00</p></div>
-      <div class="bg-white rounded-2xl shadow p-3 lg:p-4"><p class="text-xs text-slate-500 mb-1">กำไร</p><p id="m-profit" class="text-lg font-bold text-green-600">฿0.00</p></div>
-      <div class="bg-white rounded-2xl shadow p-3 lg:p-4"><p class="text-xs text-slate-500 mb-1">จำนวนใบ</p><p id="m-txn" class="text-lg font-bold text-slate-700">0</p></div>
-    </div>
-    <div class="flex gap-2 mb-3">
-      <button class="rtab active" id="msub-cust" onclick="setMonthSubTab('cust')">แยกตามลูกค้า</button>
-      <button class="rtab"        id="msub-prod" onclick="setMonthSubTab('prod')">แยกตามสินค้า</button>
-    </div>
-    <div id="m-by-cust" class="bg-white rounded-2xl shadow overflow-x-auto">
-      <table class="w-full min-w-[400px]">
-        <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-          <tr><th class="text-left px-4 py-3 w-10">#</th><th class="text-left px-4 py-3">ลูกค้า</th><th class="text-right px-4 py-3">ใบสั่งซื้อ</th><th class="text-right px-4 py-3">มูลค่า</th><th class="text-right px-4 py-3">กำไร</th></tr>
-        </thead>
-        <tbody id="m-cust-tbody"></tbody>
-      </table>
-    </div>
-    <div id="m-by-prod" class="hidden bg-white rounded-2xl shadow overflow-x-auto mt-3">
-      <table class="w-full min-w-[480px]">
-        <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-          <tr><th class="text-left px-4 py-3 w-10">#</th><th class="text-left px-4 py-3">สินค้า</th><th class="text-right px-4 py-3">จำนวน</th><th class="text-right px-4 py-3">มูลค่า</th><th class="text-right px-4 py-3">ต้นทุน</th><th class="text-right px-4 py-3">กำไร</th></tr>
-        </thead>
-        <tbody id="m-prod-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-</main>
-
-<!-- ── Modal: สินค้า ──────────────────────────────────── -->
-<div id="product-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex modal-wrap items-end lg:items-center justify-center lg:px-4">
-  <div class="modal-inner bg-white w-full lg:max-w-md rounded-t-2xl lg:rounded-2xl shadow-xl p-6">
-    <h2 id="prod-modal-title" class="font-bold text-lg mb-5">เพิ่มสินค้า</h2>
-    <div class="space-y-3">
-      <input id="f-name"  type="text"   placeholder="ชื่อสินค้า *" class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      <div class="grid grid-cols-2 gap-3">
-        <input id="f-cost"  type="number" step="any" min="0" placeholder="ต้นทุน *" class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        <input id="f-price" type="number" step="any" min="0" placeholder="ราคาขาย *" class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <input id="f-qty" type="number" min="0" placeholder="จำนวน *" class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        <input id="f-low" type="number" min="0" placeholder="แจ้งเตือนเมื่อเหลือ" class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      </div>
-    </div>
-    <div class="flex gap-3 mt-6">
-      <button onclick="saveProduct()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">บันทึก</button>
-      <button onclick="closeProductModal()" class="flex-1 border hover:bg-slate-50 py-3 rounded-xl transition">ยกเลิก</button>
-    </div>
-    <div class="safe-bottom"></div>
-  </div>
-</div>
-
-<!-- ── Modal: ลูกค้า ──────────────────────────────────── -->
-<div id="customer-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex modal-wrap items-end lg:items-center justify-center lg:px-4">
-  <div class="modal-inner bg-white w-full lg:max-w-md rounded-t-2xl lg:rounded-2xl shadow-xl p-6">
-    <h2 id="cust-modal-title" class="font-bold text-lg mb-5">เพิ่มลูกค้า</h2>
-    <div class="space-y-3">
-      <input id="cf-name"  type="text" placeholder="ชื่อลูกค้า *" class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      <input id="cf-phone" type="tel"  placeholder="เบอร์โทรศัพท์" class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      <textarea id="cf-note" rows="2" placeholder="หมายเหตุ (ที่อยู่ ฯลฯ)" class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
-    </div>
-    <div class="flex gap-3 mt-6">
-      <button onclick="saveCustomer()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">บันทึก</button>
-      <button onclick="closeCustomerModal()" class="flex-1 border hover:bg-slate-50 py-3 rounded-xl transition">ยกเลิก</button>
-    </div>
-    <div class="safe-bottom"></div>
-  </div>
-</div>
-
-<!-- ── Modal: ใบสั่งซื้อ Preview ─────────────────────── -->
-<div id="order-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex modal-wrap items-end lg:items-center justify-center lg:px-4 lg:py-6">
-  <div class="modal-inner bg-white w-full lg:max-w-lg rounded-t-2xl lg:rounded-2xl shadow-xl">
-    <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b sticky top-0 bg-white rounded-t-2xl z-10">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-base">ใบสั่งซื้อ</span>
-        <span id="pv-status-badge" class="hidden text-xs px-2 py-0.5 rounded-full font-medium"></span>
-      </div>
-      <div class="flex gap-2">
-        <button id="cancel-order-btn" onclick="cancelCurrentOrder()"
-          class="text-sm font-medium px-3 py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 transition">
-          ยกเลิกใบ
-        </button>
-        <button onclick="downloadPDF()"
-          class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>PDF
-        </button>
-        <button onclick="closeOrderModal()" class="border hover:bg-slate-50 text-sm px-3 py-1.5 rounded-lg transition">ปิด</button>
-      </div>
-    </div>
-    <div id="order-preview" class="px-5 py-4 space-y-4 overflow-y-auto">
-      <div class="flex justify-between items-start">
-        <div><p class="font-bold text-xl text-indigo-700">ร้านของฉัน</p><p class="text-xs text-slate-400 mt-0.5">ใบสั่งซื้อ / Purchase Order</p></div>
-        <div class="text-right text-sm"><p class="font-bold text-slate-700" id="pv-order-no"></p><p class="text-slate-500 text-xs mt-0.5" id="pv-date"></p></div>
-      </div>
-      <div class="bg-slate-50 rounded-xl p-3 text-sm">
-        <p class="text-xs text-slate-400 mb-1 uppercase font-medium">ลูกค้า</p>
-        <p class="font-semibold" id="pv-cust-name"></p>
-        <p class="text-slate-500" id="pv-cust-phone"></p>
-        <p class="text-slate-400 text-xs" id="pv-cust-note"></p>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm min-w-[280px]">
-          <thead class="border-b-2 border-slate-200">
-            <tr class="text-xs text-slate-500 uppercase">
-              <th class="text-left py-2">รายการ</th>
-              <th class="text-center py-2 w-12">จำนวน</th>
-              <th class="text-right py-2 w-20">ราคา</th>
-              <th class="text-right py-2 w-20">รวม</th>
-            </tr>
-          </thead>
-          <tbody id="pv-items" class="divide-y divide-slate-100"></tbody>
-        </table>
-      </div>
-      <div class="border-t-2 border-slate-200 pt-3 space-y-1.5 text-sm">
-        <div class="flex justify-between text-slate-600"><span>ยอดสินค้า</span><span id="pv-subtotal"></span></div>
-        <div class="flex justify-between text-slate-600" id="pv-discount-row"><span>ส่วนลด</span><span id="pv-discount" class="text-red-500"></span></div>
-        <div class="flex justify-between font-bold text-base"><span>ยอดสุทธิ</span><span id="pv-total" class="text-indigo-600"></span></div>
-      </div>
-      <div id="pv-note-row" class="hidden border-t pt-3 text-sm">
-        <p class="text-xs text-slate-400 uppercase font-medium mb-1">หมายเหตุ</p>
-        <p id="pv-note" class="text-slate-600"></p>
-      </div>
-      <!-- Cancelled info -->
-      <div id="pv-cancel-row" class="hidden border-t pt-3 text-sm bg-red-50 rounded-xl p-3">
-        <p class="text-xs text-red-400 uppercase font-medium mb-1">ยกเลิกโดย</p>
-        <p id="pv-cancel-info" class="text-red-600"></p>
-      </div>
-      <div class="border-t pt-4 grid grid-cols-2 gap-6 text-center text-xs text-slate-400">
-        <div><div class="border-b border-dashed border-slate-300 mb-1 h-10"></div><p>ผู้สั่งซื้อ</p></div>
-        <div><div class="border-b border-dashed border-slate-300 mb-1 h-10"></div><p>ผู้ขาย / ผู้อนุมัติ</p></div>
-      </div>
-      <div class="safe-bottom"></div>
+      <button onclick="closeOrderModal()" class="flex-1 border rounded-xl py-2.5 font-medium text-slate-600 hover:bg-slate-50 transition">ปิด</button>
+      <button onclick="saveOrder()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition">บันทึก</button>
     </div>
   </div>
 </div>
-
-</div><!-- /screen-app -->
 
 <!-- Modal: สร้างผู้ใช้ -->
 <div id="user-modal" class="modal-wrap hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
   <div class="modal-inner bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
     <h3 class="font-bold text-lg mb-4">สร้างผู้ใช้ใหม่</h3>
     <div class="space-y-3">
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">ชื่อผู้ใช้</label>
-        <input id="nu-username" type="text" placeholder="ชื่อผู้ใช้"
-          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">รหัสผ่าน</label>
-        <input id="nu-password" type="password" placeholder="อย่างน้อย 4 ตัวอักษร"
-          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">ยืนยันรหัสผ่าน</label>
-        <input id="nu-confirm" type="password" placeholder="ยืนยันรหัสผ่าน"
-          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          onkeydown="if(event.key==='Enter') saveNewUser()" />
-      </div>
-      <div class="flex gap-2 pt-1">
-        <button onclick="closeUserModal()" class="flex-1 border rounded-xl py-2.5 font-medium text-slate-600 hover:bg-slate-50 transition">ยกเลิก</button>
-        <button onclick="saveNewUser()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition">สร้างผู้ใช้</button>
-      </div>
+      <input id="nu-username" type="text" placeholder="ชื่อผู้ใช้"
+        class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      <input id="nu-password" type="password" placeholder="รหัสผ่าน (อย่างน้อย 4 ตัว)"
+        class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+      <input id="nu-confirm" type="password" placeholder="ยืนยันรหัสผ่าน"
+        class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        onkeydown="if(event.key==='Enter') saveNewUser()" />
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="closeUserModal()" class="flex-1 border rounded-xl py-2.5 font-medium text-slate-600 hover:bg-slate-50 transition">ยกเลิก</button>
+      <button onclick="saveNewUser()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition">สร้างผู้ใช้</button>
     </div>
   </div>
 </div>
 
 <!-- Toast -->
-<div id="toast" class="hidden fixed bottom-24 lg:bottom-5 right-4 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] max-w-[calc(100vw-2rem)]"></div>
+<div id="toast" class="hidden fixed bottom-6 right-4 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] max-w-[calc(100vw-2rem)]"></div>
 
-<!-- ══════════════════════════════════════════════════════
+<!-- ════════════════════════════════════════════
      JavaScript
-══════════════════════════════════════════════════════ -->
+════════════════════════════════════════════ -->
 <script>
 // ── Utilities ─────────────────────────────────────────────
-const uid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const fmt   = n  => '฿' + Number(n).toLocaleString('th', { minimumFractionDigits:2, maximumFractionDigits:2 });
-const today = () => new Date().toISOString().slice(0, 10);
-const ym    = () => new Date().toISOString().slice(0, 7);
-const isMob = () => window.innerWidth < 1024;
+const uid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const fmt   = n  => '฿' + Number(n).toLocaleString('th',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 async function sha256(msg) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// ── Firebase Config (hardcoded) ───────────────────────────
+// ── Firebase Config ────────────────────────────────────────
 const FIREBASE_CFG = {
   apiKey: "AIzaSyDIuX2lZnXDCK8RP8V7WXpPlDM9-4OeUck",
   authDomain: "my-shop-dd804.firebaseapp.com",
@@ -465,26 +378,21 @@ const FIREBASE_CFG = {
   appId: "1:261944541454:web:157058c239dec0fcdd175f"
 };
 
-// ── Session ───────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────
 const SES_KEY = 'shop_session';
-const SES_TTL = 8 * 60 * 60 * 1000; // 8 ชั่วโมง
+const SES_TTL = 8 * 60 * 60 * 1000;
+let fdb = null, currentUser = null;
+let products = [], orders = [], cartItems = [];
+let _editProdId = null, _editOrderId = null;
 
-let fdb = null;          // Firestore instance
-let currentUser = null;
-let unsubscribers = [];
-
-// In-memory state — updated by Firestore listeners
-let products  = [];
-let customers = [];
-let orders    = [];
-
-// ── Screens ───────────────────────────────────────────────
+// ── Screen ─────────────────────────────────────────────────
 function showScreen(name) {
-  ['login', 'app'].forEach(s =>
-    document.getElementById('screen-' + s).classList.toggle('hidden', s !== name)
+  ['customer','login','admin'].forEach(s =>
+    document.getElementById('screen-'+s).classList.toggle('hidden', s !== name)
   );
 }
 
+// ── Session ────────────────────────────────────────────────
 function getSession() {
   try {
     const s = JSON.parse(localStorage.getItem(SES_KEY));
@@ -493,259 +401,253 @@ function getSession() {
   } catch {}
   return null;
 }
-
-function saveSession(username) {
-  localStorage.setItem(SES_KEY, JSON.stringify({ username, expires: Date.now() + SES_TTL }));
+function saveSession(u) {
+  localStorage.setItem(SES_KEY, JSON.stringify({username:u, expires:Date.now()+SES_TTL}));
 }
 
-// ── Init ──────────────────────────────────────────────────
-async function init() {
-  initFirebase(FIREBASE_CFG);
-  const ses = getSession();
-  if (ses) {
-    currentUser = ses.username;
-    document.getElementById('header-user').textContent = currentUser;
-    setupListeners();
-    showScreen('app');
-    initAppUI();
-  } else {
-    showScreen('login');
-    // ตรวจสอบว่ามี user ในระบบหรือยัง
-    try {
-      const snap = await fdb.collection('users').limit(1).get();
-      if (snap.empty) {
-        document.getElementById('first-user-box').classList.remove('hidden');
-      }
-    } catch (e) {}
-  }
-}
-
-function initFirebase(cfg) {
-  if (!firebase.apps.length) firebase.initializeApp(cfg);
-  fdb = firebase.firestore();
-  // เปิด offline persistence
-  fdb.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-}
-
-// ── Login / Logout ────────────────────────────────────────
-async function doLogin() {
-  const username = document.getElementById('login-username').value.trim();
-  const password = document.getElementById('login-password').value;
-  if (!username || !password) { toast('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', 'bg-red-500'); return; }
-  const btn = document.getElementById('login-btn');
-  btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ…';
-  try {
-    const hash = await sha256(password);
-    const doc  = await fdb.collection('users').doc(username).get();
-    if (!doc.exists || doc.data().passwordHash !== hash) {
-      toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'bg-red-500');
-      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ'; return;
-    }
-    currentUser = username;
-    saveSession(username);
-    document.getElementById('header-user').textContent = currentUser;
-    setupListeners();
-    showScreen('app');
-    initAppUI();
-  } catch (e) {
-    toast('ผิดพลาด: ' + e.message, 'bg-red-500');
-  }
-  btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
-}
-
-function doLogout() {
-  if (!confirm('ออกจากระบบ?')) return;
-  teardownListeners();
-  currentUser = null;
-  localStorage.removeItem(SES_KEY);
-  document.getElementById('login-password').value = '';
-  showScreen('login');
-}
-
-// ── User Management ───────────────────────────────────────
-function openUserModal() {
-  document.getElementById('nu-username').value = '';
-  document.getElementById('nu-password').value = '';
-  document.getElementById('nu-confirm').value  = '';
-  document.getElementById('user-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('nu-username').focus(), 100);
-}
-function closeUserModal() {
-  document.getElementById('user-modal').classList.add('hidden');
-}
-document.getElementById('user-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeUserModal();
-});
-
-async function saveNewUser() {
-  const username = document.getElementById('nu-username').value.trim();
-  const password = document.getElementById('nu-password').value;
-  const confirm  = document.getElementById('nu-confirm').value;
-  if (!username) { toast('กรุณากรอกชื่อผู้ใช้', 'bg-red-500'); return; }
-  if (password.length < 4) { toast('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร', 'bg-red-500'); return; }
-  if (password !== confirm) { toast('รหัสผ่านไม่ตรงกัน', 'bg-red-500'); return; }
-  const existing = await fdb.collection('users').doc(username).get();
-  if (existing.exists) { toast('ชื่อผู้ใช้นี้มีอยู่แล้ว', 'bg-red-500'); return; }
-  const hash = await sha256(password);
-  await fdb.collection('users').doc(username).set({ username, passwordHash: hash, createdAt: new Date().toISOString(), createdBy: currentUser });
-  toast(`สร้างผู้ใช้ "${username}" เรียบร้อย`, 'bg-green-600');
-  closeUserModal();
-}
-
-// Bootstrap: สร้าง Admin ครั้งแรก (ใช้บนหน้า login เมื่อยังไม่มี user)
-async function createFirstUser() {
-  const username = document.getElementById('fu-username').value.trim() || 'admin';
-  const password = document.getElementById('fu-password').value;
-  if (password.length < 4) { toast('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร', 'bg-red-500'); return; }
-  const hash = await sha256(password);
-  await fdb.collection('users').doc(username).set({ username, passwordHash: hash, createdAt: new Date().toISOString() });
-  document.getElementById('first-user-box').classList.add('hidden');
-  document.getElementById('login-username').value = username;
-  toast(`สร้างบัญชี "${username}" เรียบร้อย กรุณาเข้าสู่ระบบ`, 'bg-green-600');
-}
-
-// ── Firestore Listeners (real-time sync ทุกเครื่อง) ───────
-function setupListeners() {
-  unsubscribers.push(
-    fdb.collection('products').onSnapshot(snap => {
-      products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderInventory(); renderGrid();
-    })
-  );
-  unsubscribers.push(
-    fdb.collection('customers').onSnapshot(snap => {
-      customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderCustomers(); populateCustomerSelect();
-    })
-  );
-  unsubscribers.push(
-    fdb.collection('orders').onSnapshot(snap => {
-      orders = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-      renderOrderHistory();
-    })
-  );
-}
-
-function teardownListeners() {
-  unsubscribers.forEach(fn => fn());
-  unsubscribers = [];
-  products = []; customers = []; orders = [];
-}
-
-// ── Order number (atomic counter in Firestore) ────────────
-async function nextOrderNo() {
-  const ref = fdb.collection('_config').doc('counter');
-  return fdb.runTransaction(async t => {
-    const doc = await t.get(ref);
-    const n   = ((doc.exists ? doc.data().orderCounter : 0) || 0) + 1;
-    t.set(ref, { orderCounter: n }, { merge: true });
-    return `PO-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(n).padStart(3,'0')}`;
-  });
-}
-
-// ── Tab switching ─────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
-  document.getElementById('tab-' + tab).classList.remove('hidden');
-  document.querySelectorAll('.nav-btn, .mob-nav').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  if (tab === 'order') { renderGrid(); populateCustomerSelect(); renderOrderHistory(); }
-}
-
-function initAppUI() {
-  document.querySelectorAll('.nav-btn, .mob-nav').forEach(btn =>
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab))
-  );
-  document.getElementById('report-date').value  = today();
-  document.getElementById('report-month').value = ym();
-  syncLayout();
-}
-
-// ── Toast ─────────────────────────────────────────────────
-function toast(msg, cls = 'bg-slate-800') {
+// ── Toast ──────────────────────────────────────────────────
+function toast(msg, cls='bg-slate-800') {
   const el = document.getElementById('toast');
-  el.className = `fixed ${isMob() ? 'bottom-24' : 'bottom-5'} right-4 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] max-w-[calc(100vw-2rem)] ${cls}`;
+  el.className = `fixed bottom-6 right-4 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] max-w-[calc(100vw-2rem)] ${cls}`;
   el.textContent = msg;
   el.classList.remove('hidden');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.add('hidden'), 3000);
 }
 
-// ═══════════════════════════════════════════════════════════
-// คลังสินค้า
-// ═══════════════════════════════════════════════════════════
-let _editProdId = null;
+// ── Init ───────────────────────────────────────────────────
+function init() {
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CFG);
+  fdb = firebase.firestore();
+  fdb.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 
-function renderInventory() {
-  const low = products.filter(p => p.qty <= p.lowStock);
-  const bar = document.getElementById('low-stock-bar');
-  bar.classList.toggle('hidden', !low.length);
-  if (low.length) bar.innerHTML = '⚠ สินค้าใกล้หมด: ' + low.map(p => `<b>${p.name}</b> (เหลือ ${p.qty})`).join(', ');
+  // Real-time listeners (serve both store and admin)
+  fdb.collection('products').onSnapshot(snap => {
+    products = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderStore();
+    renderAdminProducts();
+  });
+  fdb.collection('orders').onSnapshot(snap => {
+    orders = snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    renderAdminOrders();
+  });
 
-  if (!products.length) {
-    document.getElementById('inv-tbody-desktop').innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีสินค้า</td></tr>`;
-    document.getElementById('inv-cards-mobile').innerHTML  = `<p class="text-center py-10 text-slate-400">ยังไม่มีสินค้า</p>`;
-    return;
+  const ses = getSession();
+  if (ses) { currentUser = ses.username; enterAdmin(ses.username); }
+  else showScreen('customer');
+}
+
+// ── Order Number (atomic) ──────────────────────────────────
+async function nextOrderNo() {
+  const ref = fdb.collection('_config').doc('counter');
+  return fdb.runTransaction(async t => {
+    const doc = await t.get(ref);
+    const n = ((doc.exists ? doc.data().orderCounter : 0) || 0) + 1;
+    t.set(ref, {orderCounter:n}, {merge:true});
+    return `PO-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(n).padStart(3,'0')}`;
+  });
+}
+
+// ════════════════════════════════════════════
+// CUSTOMER STORE
+// ════════════════════════════════════════════
+
+function renderStore(filter='') {
+  const q = (filter||document.getElementById('store-search').value).toLowerCase();
+  const list = products.filter(p => p.available!==false && p.name.toLowerCase().includes(q));
+  const grid = document.getElementById('store-grid');
+  if (!list.length) {
+    grid.innerHTML = `<p class="col-span-4 text-center py-16 text-slate-400 text-sm">ยังไม่มีสินค้า</p>`; return;
   }
-
-  document.getElementById('inv-tbody-desktop').innerHTML = products.map(p => `
-    <tr class="border-t hover:bg-slate-50 ${p.qty <= p.lowStock ? 'bg-amber-50/60' : ''}">
-      <td class="px-4 py-3 font-medium">${p.name}${p.qty <= p.lowStock ? ' <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">ใกล้หมด</span>' : ''}</td>
-      <td class="px-4 py-3 text-right text-slate-500">${fmt(p.cost)}</td>
-      <td class="px-4 py-3 text-right font-semibold">${fmt(p.price)}</td>
-      <td class="px-4 py-3 text-right">${p.qty}</td>
-      <td class="px-4 py-3 text-right text-slate-400">${p.lowStock || '—'}</td>
-      <td class="px-4 py-3 text-right space-x-3">
-        <button onclick="openProductModal('${p.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">แก้ไข</button>
-        <button onclick="deleteProduct('${p.id}')"    class="text-red-400 hover:text-red-600 font-medium">ลบ</button>
-      </td>
-    </tr>`).join('');
-
-  document.getElementById('inv-cards-mobile').innerHTML = products.map(p => `
-    <div class="bg-white rounded-2xl shadow border ${p.qty <= p.lowStock ? 'border-amber-300' : 'border-transparent'} overflow-hidden">
-      <div class="px-4 py-3 flex items-center justify-between border-b border-slate-100">
-        <span class="font-semibold">${p.name}${p.qty <= p.lowStock ? ' <span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">ใกล้หมด</span>' : ''}</span>
-        <div class="flex gap-3">
-          <button onclick="openProductModal('${p.id}')" class="text-indigo-500 font-medium text-sm">แก้ไข</button>
-          <button onclick="deleteProduct('${p.id}')"    class="text-red-400 font-medium text-sm">ลบ</button>
+  grid.innerHTML = list.map(p => {
+    const inCart = cartItems.find(i=>i.productId===p.id);
+    const imgEl = p.imageUrl
+      ? `<img src="${p.imageUrl}" alt="" class="prod-img rounded-t-2xl" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        + `<div class="prod-placeholder rounded-t-2xl" style="display:none">${svgImg()}</div>`
+      : `<div class="prod-placeholder rounded-t-2xl">${svgImg()}</div>`;
+    const btnEl = inCart
+      ? `<div class="flex items-center gap-1">
+           <button onclick="setQty('${p.id}',-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-lg">−</button>
+           <span class="flex-1 text-center font-bold">${inCart.qty}</span>
+           <button onclick="setQty('${p.id}',1)"  class="w-9 h-9 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-lg">+</button>
+         </div>`
+      : `<button onclick="addToCart('${p.id}')"
+           class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold py-2.5 rounded-xl transition">
+           + เพิ่ม
+         </button>`;
+    return `
+      <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition overflow-hidden flex flex-col">
+        ${imgEl}
+        <div class="p-3 flex flex-col flex-1 gap-1">
+          <p class="font-semibold text-sm line-clamp-2 flex-1">${p.name}</p>
+          ${p.description?`<p class="text-xs text-slate-400 line-clamp-2">${p.description}</p>`:''}
+          <p class="font-bold text-indigo-600 text-base">${fmt(p.price)}</p>
+          ${btnEl}
         </div>
+      </div>`;
+  }).join('');
+}
+
+function svgImg() {
+  return `<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
+}
+
+function addToCart(productId) {
+  const p = products.find(x=>x.id===productId); if (!p) return;
+  const item = cartItems.find(i=>i.productId===productId);
+  if (item) item.qty++;
+  else cartItems.push({productId, name:p.name, price:p.price, qty:1});
+  syncCart();
+}
+
+function setQty(productId, delta) {
+  const item = cartItems.find(i=>i.productId===productId); if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cartItems = cartItems.filter(i=>i.productId!==productId);
+  syncCart();
+}
+
+function syncCart() {
+  // badge
+  const n = cartItems.reduce((s,i)=>s+i.qty,0);
+  const b = document.getElementById('cart-badge');
+  b.textContent = n; b.classList.toggle('hidden', n===0);
+  // grid buttons (re-render)
+  renderStore();
+  // panel
+  renderCartPanel();
+}
+
+function renderCartPanel() {
+  const el = document.getElementById('cart-items');
+  if (!cartItems.length) {
+    el.innerHTML = `<p class="text-slate-400 text-sm text-center mt-10">ยังไม่มีสินค้าในตะกร้า</p>`;
+    document.getElementById('cart-total').textContent = '฿0.00'; return;
+  }
+  el.innerHTML = cartItems.map(i=>`
+    <div class="flex items-center gap-3">
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-sm leading-snug truncate">${i.name}</p>
+        <p class="text-indigo-600 text-sm">${fmt(i.price)}</p>
       </div>
-      <div class="grid grid-cols-4 divide-x divide-slate-100 text-center">
-        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">ต้นทุน</p><p class="font-semibold text-sm">${fmt(p.cost)}</p></div>
-        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">ราคาขาย</p><p class="font-semibold text-sm text-indigo-600">${fmt(p.price)}</p></div>
-        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">คงเหลือ</p><p class="font-semibold text-sm">${p.qty}</p></div>
-        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">แจ้งเตือน</p><p class="text-sm text-slate-500">${p.lowStock || '—'}</p></div>
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="setQty('${i.productId}',-1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold">−</button>
+        <span class="w-7 text-center font-semibold">${i.qty}</span>
+        <button onclick="setQty('${i.productId}',1)"  class="w-8 h-8 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold">+</button>
+      </div>
+      <span class="w-20 text-right font-semibold text-sm shrink-0">${fmt(i.price*i.qty)}</span>
+    </div>`).join('');
+  document.getElementById('cart-total').textContent = fmt(cartItems.reduce((s,i)=>s+i.price*i.qty,0));
+}
+
+function openCart() {
+  renderCartPanel();
+  document.getElementById('cart-overlay').classList.remove('hidden');
+  document.getElementById('cart-panel').classList.add('open');
+}
+function closeCart() {
+  document.getElementById('cart-overlay').classList.add('hidden');
+  document.getElementById('cart-panel').classList.remove('open');
+}
+
+function openCheckout() {
+  if (!cartItems.length) { toast('กรุณาเพิ่มสินค้าก่อน','bg-amber-500'); return; }
+  const sub = cartItems.reduce((s,i)=>s+i.price*i.qty,0);
+  document.getElementById('co-subtotal').textContent = fmt(sub);
+  document.getElementById('co-total').textContent    = fmt(sub);
+  closeCart();
+  document.getElementById('checkout-modal').classList.remove('hidden');
+}
+function closeCheckout() { document.getElementById('checkout-modal').classList.add('hidden'); }
+
+async function submitOrder() {
+  const name    = document.getElementById('co-name').value.trim();
+  const address = document.getElementById('co-address').value.trim();
+  const phone   = document.getElementById('co-phone').value.trim();
+  const note    = document.getElementById('co-note').value.trim();
+  if (!name)    { toast('กรุณากรอกชื่อ','bg-red-500'); return; }
+  if (!address) { toast('กรุณากรอกที่อยู่จัดส่ง','bg-red-500'); return; }
+  if (!phone)   { toast('กรุณากรอกเบอร์โทรศัพท์','bg-red-500'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง…';
+  try {
+    const orderNo  = await nextOrderNo();
+    const subtotal = cartItems.reduce((s,i)=>s+i.price*i.qty,0);
+    await fdb.collection('orders').doc(uid()).set({
+      orderNo, customerName:name, customerAddress:address, customerPhone:phone, note,
+      items: cartItems.map(i=>({...i})),
+      subtotal, discount:0, total:subtotal,
+      status:'pending', createdAt: new Date().toISOString()
+    });
+    document.getElementById('success-orderno').textContent = orderNo;
+    closeCheckout();
+    document.getElementById('success-modal').classList.remove('hidden');
+    cartItems = []; syncCart();
+    ['co-name','co-address','co-phone','co-note'].forEach(id=>document.getElementById(id).value='');
+  } catch(e) { toast('เกิดข้อผิดพลาด: '+e.message,'bg-red-500'); }
+  btn.disabled = false; btn.textContent = 'ยืนยันสั่งซื้อ';
+}
+
+function closeSuccess() { document.getElementById('success-modal').classList.add('hidden'); }
+
+// ════════════════════════════════════════════
+// ADMIN: Products
+// ════════════════════════════════════════════
+
+function renderAdminProducts() {
+  const el = document.getElementById('admin-product-list'); if (!el) return;
+  if (!products.length) { el.innerHTML=`<p class="col-span-4 text-center py-16 text-slate-400">ยังไม่มีสินค้า</p>`; return; }
+  el.innerHTML = products.map(p=>`
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col ${!p.available?'opacity-60':''}">
+      ${p.imageUrl
+        ? `<img src="${p.imageUrl}" alt="" class="prod-img" onerror="this.style.display='none'">`
+        : `<div class="prod-placeholder">${svgImg()}</div>`}
+      <div class="p-3 flex-1 flex flex-col">
+        <p class="font-semibold text-sm flex-1 mb-1">${p.name}</p>
+        <p class="font-bold text-indigo-600 mb-0.5">${fmt(p.price)}</p>
+        <p class="text-xs text-slate-400 mb-2">${p.available!==false?'แสดงในร้าน':'ซ่อน'}</p>
+        <div class="flex gap-2">
+          <button onclick="openProductModal('${p.id}')" class="flex-1 text-xs border rounded-xl py-1.5 text-indigo-600 hover:bg-indigo-50 font-medium transition">แก้ไข</button>
+          <button onclick="deleteProduct('${p.id}')"    class="flex-1 text-xs border rounded-xl py-1.5 text-red-500 hover:bg-red-50 font-medium transition">ลบ</button>
+        </div>
       </div>
     </div>`).join('');
 }
 
-function openProductModal(id = null) {
+function openProductModal(id=null) {
   _editProdId = id;
-  const p = id ? products.find(x => x.id === id) : {};
+  const p = id ? products.find(x=>x.id===id) : {};
   document.getElementById('prod-modal-title').textContent = id ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า';
-  document.getElementById('f-name').value  = p?.name     ?? '';
-  document.getElementById('f-cost').value  = p?.cost     ?? '';
-  document.getElementById('f-price').value = p?.price    ?? '';
-  document.getElementById('f-qty').value   = p?.qty      ?? '';
-  document.getElementById('f-low').value   = p?.lowStock ?? '';
+  document.getElementById('f-name').value      = p?.name        ?? '';
+  document.getElementById('f-price').value     = p?.price       ?? '';
+  document.getElementById('f-desc').value      = p?.description ?? '';
+  document.getElementById('f-image').value     = p?.imageUrl    ?? '';
+  document.getElementById('f-available').checked = p?.available !== false;
+  previewImg(p?.imageUrl ?? '');
   document.getElementById('product-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('f-name').focus(), 100);
+  setTimeout(()=>document.getElementById('f-name').focus(),100);
 }
-function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); _editProdId = null; }
-document.getElementById('product-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeProductModal(); });
+function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); _editProdId=null; }
+document.getElementById('product-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeProductModal(); });
+
+function previewImg(url) {
+  const wrap = document.getElementById('img-preview-wrap');
+  if (url) { document.getElementById('img-preview').src=url; wrap.classList.remove('hidden'); }
+  else wrap.classList.add('hidden');
+}
 
 async function saveProduct() {
-  const name     = document.getElementById('f-name').value.trim();
-  const cost     = parseFloat(document.getElementById('f-cost').value);
-  const price    = parseFloat(document.getElementById('f-price').value);
-  const qty      = parseInt(document.getElementById('f-qty').value, 10);
-  const lowStock = parseInt(document.getElementById('f-low').value, 10) || 0;
-  if (!name || isNaN(cost) || isNaN(price) || isNaN(qty)) { toast('กรุณากรอกข้อมูลที่จำเป็น (*)', 'bg-red-500'); return; }
-  const data = { name, cost, price, qty, lowStock };
-  const id   = _editProdId || uid();
-  await fdb.collection('products').doc(id).set({ id, ...data }, { merge: true });
-  toast(_editProdId ? 'อัปเดตสินค้าเรียบร้อย' : 'เพิ่มสินค้าเรียบร้อย', 'bg-green-600');
+  const name      = document.getElementById('f-name').value.trim();
+  const price     = parseFloat(document.getElementById('f-price').value);
+  const desc      = document.getElementById('f-desc').value.trim();
+  const imageUrl  = document.getElementById('f-image').value.trim();
+  const available = document.getElementById('f-available').checked;
+  if (!name||isNaN(price)) { toast('กรุณากรอกชื่อและราคา','bg-red-500'); return; }
+  const id = _editProdId||uid();
+  await fdb.collection('products').doc(id).set({id,name,price,description:desc,imageUrl,available},{merge:true});
+  toast(_editProdId?'อัปเดตเรียบร้อย':'เพิ่มสินค้าเรียบร้อย','bg-green-600');
   closeProductModal();
 }
 
@@ -755,473 +657,162 @@ async function deleteProduct(id) {
   toast('ลบสินค้าเรียบร้อย');
 }
 
-// ═══════════════════════════════════════════════════════════
-// ลูกค้า
-// ═══════════════════════════════════════════════════════════
-let _editCustId = null;
+// ════════════════════════════════════════════
+// ADMIN: Orders
+// ════════════════════════════════════════════
 
-function renderCustomers() {
-  const activeOrders = orders.filter(o => o.status !== 'cancelled');
-  if (!customers.length) {
-    document.getElementById('cust-tbody-desktop').innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีลูกค้า</td></tr>`;
-    document.getElementById('cust-cards-mobile').innerHTML  = `<p class="text-center py-10 text-slate-400">ยังไม่มีลูกค้า</p>`;
-    return;
-  }
-  const rows = customers.map(c => {
-    const co    = activeOrders.filter(o => o.customerId === c.id);
-    const spent = co.reduce((s, o) => s + o.total, 0);
-    return { c, co: co.length, spent };
-  });
-  document.getElementById('cust-tbody-desktop').innerHTML = rows.map(({ c, co, spent }) => `
-    <tr class="border-t hover:bg-slate-50">
-      <td class="px-4 py-3 font-medium">${c.name}</td>
-      <td class="px-4 py-3 text-slate-600">${c.phone || '—'}</td>
-      <td class="px-4 py-3 text-slate-500 max-w-[160px] truncate">${c.note || '—'}</td>
-      <td class="px-4 py-3 text-right">${co}</td>
-      <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(spent)}</td>
-      <td class="px-4 py-3 text-right space-x-3">
-        <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">แก้ไข</button>
-        <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 hover:text-red-600 font-medium">ลบ</button>
-      </td>
-    </tr>`).join('');
-  document.getElementById('cust-cards-mobile').innerHTML = rows.map(({ c, co, spent }) => `
-    <div class="bg-white rounded-2xl shadow overflow-hidden">
-      <div class="px-4 py-3 flex items-center justify-between border-b border-slate-100">
-        <div><p class="font-semibold">${c.name}</p><p class="text-xs text-slate-500">${c.phone || ''}${c.note ? ' · ' + c.note : ''}</p></div>
-        <div class="flex gap-3">
-          <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 font-medium text-sm">แก้ไข</button>
-          <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 font-medium text-sm">ลบ</button>
+const SL = {pending:'รอดำเนินการ', confirmed:'ยืนยันแล้ว', cancelled:'ยกเลิก'};
+const SC = {pending:'status-pending', confirmed:'status-confirmed', cancelled:'status-cancelled'};
+
+function renderAdminOrders() {
+  const el = document.getElementById('admin-order-list'); if (!el) return;
+  const f = document.getElementById('order-filter')?.value||'';
+  const list = f ? orders.filter(o=>o.status===f) : orders;
+  if (!list.length) { el.innerHTML=`<p class="text-center py-16 text-slate-400">ยังไม่มีออเดอร์</p>`; return; }
+  el.innerHTML = list.map(o=>`
+    <div class="bg-white rounded-2xl shadow-sm p-4 cursor-pointer hover:shadow-md transition" onclick="openOrderModal('${o.id}')">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-indigo-600 font-bold text-sm">${o.orderNo}</p>
+          <p class="font-semibold mt-0.5">${o.customerName}</p>
+          <p class="text-xs text-slate-400 truncate mt-0.5">${o.customerPhone} · ${o.customerAddress}</p>
+          <p class="text-xs text-slate-300 mt-1">${o.createdAt.slice(0,16).replace('T',' ')}</p>
         </div>
-      </div>
-      <div class="grid grid-cols-2 divide-x divide-slate-100 text-center">
-        <div class="py-2.5"><p class="text-xs text-slate-400 mb-0.5">ใบสั่งซื้อ</p><p class="font-semibold">${co} ใบ</p></div>
-        <div class="py-2.5"><p class="text-xs text-slate-400 mb-0.5">ยอดรวม</p><p class="font-semibold text-indigo-600">${fmt(spent)}</p></div>
+        <div class="text-right shrink-0">
+          <span class="inline-block text-xs px-2.5 py-0.5 rounded-full font-medium ${SC[o.status]||SC.pending}">${SL[o.status]||o.status}</span>
+          <p class="font-bold text-base mt-1.5">${fmt(o.total)}</p>
+        </div>
       </div>
     </div>`).join('');
 }
 
-function openCustomerModal(id = null) {
-  _editCustId = id;
-  const c = id ? customers.find(x => x.id === id) : {};
-  document.getElementById('cust-modal-title').textContent = id ? 'แก้ไขข้อมูลลูกค้า' : 'เพิ่มลูกค้า';
-  document.getElementById('cf-name').value  = c?.name  ?? '';
-  document.getElementById('cf-phone').value = c?.phone ?? '';
-  document.getElementById('cf-note').value  = c?.note  ?? '';
-  document.getElementById('customer-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('cf-name').focus(), 100);
-}
-function closeCustomerModal() { document.getElementById('customer-modal').classList.add('hidden'); _editCustId = null; }
-document.getElementById('customer-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCustomerModal(); });
-
-async function saveCustomer() {
-  const name  = document.getElementById('cf-name').value.trim();
-  const phone = document.getElementById('cf-phone').value.trim();
-  const note  = document.getElementById('cf-note').value.trim();
-  if (!name) { toast('กรุณากรอกชื่อลูกค้า', 'bg-red-500'); return; }
-  const id = _editCustId || uid();
-  await fdb.collection('customers').doc(id).set({ id, name, phone, note }, { merge: true });
-  toast(_editCustId ? 'อัปเดตลูกค้าเรียบร้อย' : 'เพิ่มลูกค้าเรียบร้อย', 'bg-green-600');
-  closeCustomerModal();
-}
-
-async function deleteCustomer(id) {
-  if (!confirm('ยืนยันการลบลูกค้านี้?')) return;
-  await fdb.collection('customers').doc(id).delete();
-  toast('ลบลูกค้าเรียบร้อย');
-}
-
-function populateCustomerSelect() {
-  const sel = document.getElementById('order-customer');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— ลูกค้าทั่วไป —</option>' +
-    customers.map(c => `<option value="${c.id}" ${cur===c.id?'selected':''}>${c.name}</option>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════
-// ใบสั่งซื้อ
-// ═══════════════════════════════════════════════════════════
-let orderItems = [];
-let _mobView   = 'products';
-
-function setMobView(view) {
-  _mobView = view;
-  if (isMob()) {
-    document.getElementById('mob-products-view').style.display = view === 'products' ? '' : 'none';
-    document.getElementById('mob-cart-view').style.display     = view === 'cart'     ? '' : 'none';
-  }
-  const ac = 'bg-indigo-600 text-white', in_ = 'text-slate-600 bg-white';
-  document.getElementById('mob-products-tab').className = `flex-1 py-3 text-sm font-semibold transition ${view==='products'?ac:in_}`;
-  document.getElementById('mob-cart-tab').className     = `flex-1 py-3 text-sm font-semibold transition relative ${view==='cart'?ac:in_}`;
-}
-
-function syncLayout() {
-  if (!isMob()) {
-    document.getElementById('mob-products-view').style.display = '';
-    document.getElementById('mob-cart-view').style.display     = '';
-  } else { setMobView(_mobView); }
-}
-window.addEventListener('resize', syncLayout);
-
-function renderGrid(filter = '') {
-  const q = filter.toLowerCase();
-  const list = products.filter(p => p.name.toLowerCase().includes(q));
-  const grid = document.getElementById('product-grid');
-  if (!list.length) { grid.innerHTML = `<p class="col-span-3 text-center py-12 text-slate-400">ไม่พบสินค้า</p>`; return; }
-  grid.innerHTML = list.map(p => {
-    const oos = p.qty === 0;
-    return `
-      <button onclick="addItem('${p.id}')"
-        class="bg-white rounded-2xl shadow hover:shadow-md active:scale-95 transition-all p-4 text-left border-2
-               ${oos ? 'opacity-40 cursor-not-allowed border-transparent' : 'border-transparent hover:border-indigo-300'}"
-        ${oos ? 'disabled' : ''}>
-        <p class="font-semibold leading-tight mb-2 text-sm line-clamp-2">${p.name}</p>
-        <p class="text-indigo-600 font-bold">${fmt(p.price)}</p>
-        <p class="text-xs text-slate-400 mt-1">คงเหลือ: ${p.qty}</p>
-      </button>`;
-  }).join('');
-}
-
-function addItem(productId) {
-  const p = products.find(x => x.id === productId);
-  if (!p || p.qty === 0) return;
-  const item = orderItems.find(i => i.productId === productId);
-  if (item) {
-    if (item.qty >= p.qty) { toast('สินค้าไม่เพียงพอ', 'bg-amber-500'); return; }
-    item.qty++;
-  } else {
-    orderItems.push({ productId, name: p.name, qty: 1, price: p.price, cost: p.cost });
-  }
-  renderOrderForm(); updateMobBadge();
-  if (isMob() && orderItems.length === 1) setMobView('cart');
-}
-
-function setItemQty(productId, delta) {
-  const p    = products.find(x => x.id === productId);
-  const item = orderItems.find(i => i.productId === productId);
-  if (!item) return;
-  item.qty += delta;
-  if (item.qty <= 0) { orderItems = orderItems.filter(i => i.productId !== productId); }
-  else if (p && item.qty > p.qty) { item.qty = p.qty; toast('สินค้าเต็มจำนวนแล้ว', 'bg-amber-500'); }
-  renderOrderForm(); updateMobBadge();
-}
-
-function updateMobBadge() {
-  const n = orderItems.reduce((s, i) => s + i.qty, 0);
-  const b = document.getElementById('mob-badge');
-  b.textContent = n; b.classList.toggle('hidden', n === 0);
-}
-
-function renderOrderForm() {
-  const el = document.getElementById('order-items');
-  el.innerHTML = orderItems.length
-    ? orderItems.map(i => `
-        <div class="flex items-center gap-2">
-          <span class="flex-1 leading-tight text-xs">${i.name}</span>
-          <div class="flex items-center gap-1 shrink-0">
-            <button onclick="setItemQty('${i.productId}',-1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-base">−</button>
-            <span class="w-7 text-center font-semibold">${i.qty}</span>
-            <button onclick="setItemQty('${i.productId}',1)"  class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-base">+</button>
-          </div>
-          <span class="font-semibold w-16 text-right shrink-0 text-xs">${fmt(i.price * i.qty)}</span>
-        </div>`).join('')
-    : `<p class="text-slate-400 text-xs text-center mt-4">เลือกสินค้าจากรายการ</p>`;
-  renderOrderSummary();
-}
-
-function renderOrderSummary() {
-  const subtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0);
-  const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-  document.getElementById('subtotal-display').textContent = fmt(subtotal);
-  document.getElementById('discount-display').textContent = '-' + fmt(discount);
-  document.getElementById('total-display').textContent    = fmt(Math.max(0, subtotal - discount));
-}
-
-function clearOrder() {
-  orderItems = [];
-  ['discount-input','order-note'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('order-customer').value = '';
-  renderOrderForm(); updateMobBadge();
-}
-
-async function createOrder() {
-  if (!orderItems.length) { toast('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ', 'bg-amber-500'); return; }
-  const custId   = document.getElementById('order-customer').value;
-  const cust     = custId ? customers.find(c => c.id === custId) : null;
-  const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-  const subtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0);
-  const total    = Math.max(0, subtotal - discount);
-  const note     = document.getElementById('order-note').value.trim();
-  const now      = new Date();
-  const orderNo  = await nextOrderNo();
-  const order    = {
-    id: uid(), orderNo,
-    date:          now.toISOString().slice(0, 10),
-    time:          now.toTimeString().slice(0, 5),
-    createdBy:     currentUser,
-    customerId:    custId   || null,
-    customerName:  cust?.name  || 'ลูกค้าทั่วไป',
-    customerPhone: cust?.phone || '',
-    customerNote:  cust?.note  || '',
-    items:         orderItems.map(i => ({ ...i })),
-    subtotal, discount, total, note,
-    status:        'active',
-  };
-  // Batch: save order + deduct stock
-  const batch = fdb.batch();
-  batch.set(fdb.collection('orders').doc(order.id), order);
-  order.items.forEach(item => {
-    const ref = fdb.collection('products').doc(item.productId);
-    batch.set(ref, { qty: firebase.firestore.FieldValue.increment(-item.qty) }, { merge: true });
-  });
-  await batch.commit();
-  showOrderPreview(order);
-  clearOrder();
-  toast('สร้างใบสั่งซื้อเรียบร้อย', 'bg-green-600');
-}
-
-// ── ประวัติใบสั่งซื้อ ─────────────────────────────────────
-function renderOrderHistory() {
-  const list = orders.slice(0, 12);
-  const el   = document.getElementById('order-history');
-  if (!list.length) { el.innerHTML = `<p class="text-slate-400 text-xs text-center py-4">ยังไม่มีใบสั่งซื้อ</p>`; return; }
-  el.innerHTML = list.map(o => {
-    const cancelled = o.status === 'cancelled';
-    return `
-      <div class="bg-white rounded-xl shadow-sm border ${cancelled ? 'border-red-200 opacity-60' : 'border-transparent hover:border-indigo-300'} transition p-3 flex items-center gap-3 cursor-pointer"
-           onclick='showOrderPreview(${JSON.stringify(o)})'>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-0.5">
-            <span class="font-semibold ${cancelled ? 'text-slate-400 line-through' : 'text-indigo-600'} text-xs">${o.orderNo}</span>
-            ${cancelled ? '<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium">ยกเลิก</span>' : ''}
-            <span class="text-slate-400 text-xs">${o.date}</span>
-          </div>
-          <p class="text-slate-700 truncate text-xs">${o.customerName} — ${o.items.map(i=>i.name).join(', ')}</p>
-        </div>
-        <div class="text-right shrink-0">
-          <p class="font-bold text-sm ${cancelled ? 'line-through text-slate-400' : ''}">${fmt(o.total)}</p>
-          <p class="text-xs text-slate-400">${o.items.reduce((s,i)=>s+i.qty,0)} รายการ</p>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-// ── Preview + Cancel ──────────────────────────────────────
-let _currentOrder = null;
-
-function showOrderPreview(order) {
-  _currentOrder = order;
-  const cancelled = order.status === 'cancelled';
-  document.getElementById('pv-order-no').textContent  = order.orderNo;
-  document.getElementById('pv-date').textContent      = `วันที่ ${order.date}  ${order.time} น.`;
-  document.getElementById('pv-cust-name').textContent = order.customerName;
-  document.getElementById('pv-cust-phone').textContent= order.customerPhone || '';
-  document.getElementById('pv-cust-note').textContent = order.customerNote  || '';
-  document.getElementById('pv-subtotal').textContent  = fmt(order.subtotal);
-  document.getElementById('pv-total').textContent     = fmt(order.total);
-  document.getElementById('pv-discount-row').classList.toggle('hidden', !order.discount);
-  document.getElementById('pv-discount').textContent  = '-' + fmt(order.discount);
-  document.getElementById('pv-note-row').classList.toggle('hidden', !order.note);
-  document.getElementById('pv-note').textContent      = order.note || '';
-  document.getElementById('pv-items').innerHTML = order.items.map(i => `
-    <tr class="${cancelled ? 'opacity-50' : ''}">
-      <td class="py-2 pr-2">${i.name}</td>
-      <td class="py-2 text-center text-slate-500">${i.qty}</td>
-      <td class="py-2 text-right text-slate-500">${fmt(i.price)}</td>
-      <td class="py-2 text-right font-medium">${fmt(i.price*i.qty)}</td>
-    </tr>`).join('');
-  // Status badge
-  const badge = document.getElementById('pv-status-badge');
-  if (cancelled) {
-    badge.textContent = 'ยกเลิกแล้ว'; badge.className = 'text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-600';
-    badge.classList.remove('hidden');
-  } else { badge.classList.add('hidden'); }
-  // Cancelled info
-  const cancelRow = document.getElementById('pv-cancel-row');
-  if (cancelled && order.cancelledAt) {
-    cancelRow.classList.remove('hidden');
-    document.getElementById('pv-cancel-info').textContent =
-      `${order.cancelledBy || '—'} เมื่อ ${order.cancelledAt.slice(0,16).replace('T', ' ')} น. (คืน stock แล้ว)`;
-  } else { cancelRow.classList.add('hidden'); }
-  // Cancel button visibility
-  document.getElementById('cancel-order-btn').classList.toggle('hidden', cancelled);
+function openOrderModal(id) {
+  const o = orders.find(x=>x.id===id); if (!o) return;
+  _editOrderId = id;
+  document.getElementById('om-orderno').textContent  = o.orderNo;
+  document.getElementById('om-name').textContent     = o.customerName;
+  document.getElementById('om-address').textContent  = o.customerAddress;
+  document.getElementById('om-phone').textContent    = o.customerPhone;
+  const nr = document.getElementById('om-note-row');
+  if (o.note) { document.getElementById('om-note').textContent=o.note; nr.classList.remove('hidden'); }
+  else nr.classList.add('hidden');
+  document.getElementById('om-items').innerHTML = o.items.map(i=>
+    `<div class="flex justify-between"><span>${i.name} × ${i.qty}</span><span class="font-medium">${fmt(i.price*i.qty)}</span></div>`
+  ).join('');
+  document.getElementById('om-subtotal').textContent = fmt(o.subtotal);
+  document.getElementById('om-discount').value       = o.discount||0;
+  document.getElementById('om-total').textContent    = fmt(o.total);
+  document.getElementById('om-status').value         = o.status||'pending';
   document.getElementById('order-modal').classList.remove('hidden');
 }
 
-function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); _currentOrder = null; }
-document.getElementById('order-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeOrderModal(); });
+function updateOmTotal() {
+  const o = orders.find(x=>x.id===_editOrderId); if (!o) return;
+  const d = parseFloat(document.getElementById('om-discount').value)||0;
+  document.getElementById('om-total').textContent = fmt(Math.max(0, o.subtotal-d));
+}
 
-async function cancelCurrentOrder() {
-  if (!_currentOrder || _currentOrder.status === 'cancelled') return;
-  if (!confirm(`ยืนยันการยกเลิกใบสั่งซื้อ ${_currentOrder.orderNo}?\nสินค้าจะถูกคืน stock กลับมาทั้งหมด`)) return;
-  const order = _currentOrder;
+function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); _editOrderId=null; }
+document.getElementById('order-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeOrderModal(); });
+
+async function saveOrder() {
+  const o = orders.find(x=>x.id===_editOrderId); if (!o) return;
+  const discount = parseFloat(document.getElementById('om-discount').value)||0;
+  const status   = document.getElementById('om-status').value;
+  const total    = Math.max(0, o.subtotal-discount);
+  await fdb.collection('orders').doc(_editOrderId).update({discount,total,status,updatedAt:new Date().toISOString(),updatedBy:currentUser});
+  toast('บันทึกเรียบร้อย','bg-green-600');
+  closeOrderModal();
+}
+
+// ════════════════════════════════════════════
+// ADMIN: Auth
+// ════════════════════════════════════════════
+
+function showAdminLogin() {
+  if (currentUser) { enterAdmin(currentUser); return; }
+  showScreen('login');
+  fdb.collection('users').limit(1).get()
+    .then(s=>document.getElementById('first-user-box').classList.toggle('hidden',!s.empty))
+    .catch(()=>{});
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!username||!password) { toast('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน','bg-red-500'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='กำลังตรวจสอบ…';
   try {
-    const batch = fdb.batch();
-    // คืน stock
-    order.items.forEach(item => {
-      batch.set(fdb.collection('products').doc(item.productId),
-        { qty: firebase.firestore.FieldValue.increment(item.qty) }, { merge: true });
-    });
-    // อัปเดต order
-    batch.update(fdb.collection('orders').doc(order.id), {
-      status:      'cancelled',
-      cancelledAt: new Date().toISOString(),
-      cancelledBy: currentUser,
-    });
-    await batch.commit();
-    closeOrderModal();
-    toast(`ยกเลิก ${order.orderNo} และคืน stock เรียบร้อย`, 'bg-green-600');
-  } catch (e) { toast('ผิดพลาด: ' + e.message, 'bg-red-500'); }
+    const hash = await sha256(password);
+    const doc  = await fdb.collection('users').doc(username).get();
+    if (!doc.exists||doc.data().passwordHash!==hash) {
+      toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง','bg-red-500');
+    } else {
+      currentUser = username; saveSession(username); enterAdmin(username);
+    }
+  } catch(e) { toast('ผิดพลาด: '+e.message,'bg-red-500'); }
+  btn.disabled=false; btn.textContent='เข้าสู่ระบบ';
 }
 
-// ── PDF ───────────────────────────────────────────────────
-function downloadPDF() {
-  if (!_currentOrder) return;
-  const o = _currentOrder;
-  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"/>
-  <title>ใบสั่งซื้อ ${o.orderNo}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet"/>
-  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Sarabun',sans-serif;font-size:14px;color:#1e293b;padding:20mm;max-width:210mm;margin:0 auto}@page{size:A4;margin:15mm}@media print{body{padding:0}}table{width:100%;border-collapse:collapse}th{font-size:11px;text-transform:uppercase;color:#94a3b8;font-weight:600;padding:8px 4px;border-bottom:2px solid #e2e8f0}</style>
-  </head><body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">
-    <div><p style="font-size:24px;font-weight:700;color:#4f46e5">ร้านของฉัน</p><p style="font-size:12px;color:#94a3b8;margin-top:2px">ใบสั่งซื้อ / Purchase Order${o.status==='cancelled'?' <span style="color:#ef4444">[ยกเลิกแล้ว]</span>':''}</p></div>
-    <div style="text-align:right"><p style="font-size:18px;font-weight:700">${o.orderNo}</p><p style="font-size:12px;color:#64748b;margin-top:2px">วันที่ ${o.date} เวลา ${o.time} น.</p></div>
-  </div>
-  <div style="background:#f8fafc;border-radius:8px;padding:14px 16px;margin-bottom:24px">
-    <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:6px">ลูกค้า</p>
-    <p style="font-weight:700;font-size:15px">${o.customerName}</p>
-    ${o.customerPhone ? `<p style="color:#64748b;margin-top:2px">${o.customerPhone}</p>` : ''}
-    ${o.customerNote  ? `<p style="color:#94a3b8;font-size:12px;margin-top:2px">${o.customerNote}</p>` : ''}
-  </div>
-  <table>
-    <thead><tr><th style="text-align:left">รายการสินค้า</th><th style="text-align:center;width:60px">จำนวน</th><th style="text-align:right;width:100px">ราคา/หน่วย</th><th style="text-align:right;width:100px">รวม</th></tr></thead>
-    <tbody>${o.items.map(i=>`<tr><td style="padding:8px 4px;border-bottom:1px solid #f1f5f9">${i.name}</td><td style="padding:8px 4px;border-bottom:1px solid #f1f5f9;text-align:center;color:#64748b">${i.qty}</td><td style="padding:8px 4px;border-bottom:1px solid #f1f5f9;text-align:right;color:#64748b">${fmt(i.price)}</td><td style="padding:8px 4px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600">${fmt(i.price*i.qty)}</td></tr>`).join('')}</tbody>
-    <tfoot>
-      <tr><td colspan="3" style="text-align:right;padding:8px 4px;color:#64748b">ยอดสินค้า</td><td style="text-align:right;padding:8px 4px">${fmt(o.subtotal)}</td></tr>
-      ${o.discount>0?`<tr><td colspan="3" style="text-align:right;padding:4px 4px;color:#64748b">ส่วนลด</td><td style="text-align:right;padding:4px 4px;color:#ef4444">-${fmt(o.discount)}</td></tr>`:''}
-      <tr><td colspan="3" style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;border-top:2px solid #e2e8f0">ยอดสุทธิ</td><td style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;color:#4f46e5;border-top:2px solid #e2e8f0">${fmt(o.total)}</td></tr>
-    </tfoot>
-  </table>
-  ${o.note?`<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0"><p style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:4px">หมายเหตุ</p><p style="color:#475569">${o.note}</p></div>`:''}
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;text-align:center">
-    <div><div style="border-bottom:1px dashed #cbd5e1;margin-bottom:6px;height:40px"></div><p style="font-size:12px;color:#94a3b8">ผู้สั่งซื้อ</p></div>
-    <div><div style="border-bottom:1px dashed #cbd5e1;margin-bottom:6px;height:40px"></div><p style="font-size:12px;color:#94a3b8">ผู้ขาย / ผู้อนุมัติ</p></div>
-  </div>
-  </body></html>`;
-  const win = window.open('', '_blank', 'width=800,height=900');
-  win.document.write(html); win.document.close(); win.focus();
-  setTimeout(() => { win.print(); }, 800);
+function enterAdmin(username) {
+  document.getElementById('header-user').textContent = username;
+  showScreen('admin');
+  // init tabs once
+  if (!document._adminTabsReady) {
+    document._adminTabsReady = true;
+    document.querySelectorAll('.admin-tab[data-atab]').forEach(btn=>
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.admin-page').forEach(p=>p.classList.add('hidden'));
+        document.getElementById('atab-'+btn.dataset.atab).classList.remove('hidden');
+        document.querySelectorAll('.admin-tab[data-atab]').forEach(b=>b.classList.toggle('active',b===btn));
+      })
+    );
+  }
 }
 
-document.getElementById('pos-search').addEventListener('input', e => renderGrid(e.target.value));
-
-// ═══════════════════════════════════════════════════════════
-// รายงาน (นับเฉพาะ active orders)
-// ═══════════════════════════════════════════════════════════
-let _reportMode  = 'daily';
-let _monthSubTab = 'cust';
-
-function setReportMode(mode) {
-  _reportMode = mode;
-  document.getElementById('report-daily').classList.toggle('hidden',   mode !== 'daily');
-  document.getElementById('report-monthly').classList.toggle('hidden', mode !== 'monthly');
-  document.getElementById('report-daily-ctrl').classList.toggle('hidden',   mode !== 'daily');
-  document.getElementById('report-monthly-ctrl').classList.toggle('hidden', mode !== 'monthly');
-  document.getElementById('mode-daily').classList.toggle('active',   mode === 'daily');
-  document.getElementById('mode-monthly').classList.toggle('active', mode === 'monthly');
-  if (mode === 'daily')   renderDailyReport();
-  if (mode === 'monthly') renderMonthlyReport();
+function doLogout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  currentUser=null; localStorage.removeItem(SES_KEY);
+  document.getElementById('login-password').value='';
+  showScreen('customer');
 }
 
-function setMonthSubTab(sub) {
-  _monthSubTab = sub;
-  document.getElementById('m-by-cust').classList.toggle('hidden', sub !== 'cust');
-  document.getElementById('m-by-prod').classList.toggle('hidden', sub !== 'prod');
-  document.getElementById('msub-cust').classList.toggle('active', sub === 'cust');
-  document.getElementById('msub-prod').classList.toggle('active', sub === 'prod');
+// ── User Management ────────────────────────────────────────
+function openUserModal() {
+  ['nu-username','nu-password','nu-confirm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('user-modal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('nu-username').focus(),100);
+}
+function closeUserModal() { document.getElementById('user-modal').classList.add('hidden'); }
+document.getElementById('user-modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeUserModal(); });
+
+async function saveNewUser() {
+  const username = document.getElementById('nu-username').value.trim();
+  const password = document.getElementById('nu-password').value;
+  const confirm  = document.getElementById('nu-confirm').value;
+  if (!username) { toast('กรุณากรอกชื่อผู้ใช้','bg-red-500'); return; }
+  if (password.length<4) { toast('รหัสผ่านต้องมีอย่างน้อย 4 ตัว','bg-red-500'); return; }
+  if (password!==confirm) { toast('รหัสผ่านไม่ตรงกัน','bg-red-500'); return; }
+  const ex = await fdb.collection('users').doc(username).get();
+  if (ex.exists) { toast('ชื่อผู้ใช้นี้มีอยู่แล้ว','bg-red-500'); return; }
+  const hash = await sha256(password);
+  await fdb.collection('users').doc(username).set({username,passwordHash:hash,createdAt:new Date().toISOString(),createdBy:currentUser});
+  toast(`สร้างผู้ใช้ "${username}" เรียบร้อย`,'bg-green-600');
+  closeUserModal();
 }
 
-function activeOrders(list) { return list.filter(o => o.status !== 'cancelled'); }
-
-function renderDailyReport() {
-  const input    = document.getElementById('report-date');
-  const date     = input.value || today();
-  if (!input.value) input.value = date;
-  const dayOrders = activeOrders(orders.filter(o => o.date === date));
-  const revenue   = dayOrders.reduce((s, o) => s + o.total, 0);
-  const cost      = dayOrders.reduce((s, o) => s + o.items.reduce((ss, i) => ss + i.cost * i.qty, 0), 0);
-  document.getElementById('stat-revenue').textContent = fmt(revenue);
-  document.getElementById('stat-cost').textContent    = fmt(cost);
-  document.getElementById('stat-profit').textContent  = fmt(revenue - cost);
-  const map = {};
-  dayOrders.forEach(o => o.items.forEach(i => {
-    if (!map[i.name]) map[i.name] = { qty:0, revenue:0 };
-    map[i.name].qty     += i.qty;
-    map[i.name].revenue += i.price * i.qty;
-  }));
-  const top = Object.entries(map).sort((a,b) => b[1].qty - a[1].qty).slice(0, 5);
-  document.getElementById('top-sellers').innerHTML = top.length
-    ? top.map(([name, d], i) => `
-        <div class="flex items-center gap-3 py-1.5">
-          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">${i+1}</span>
-          <span class="flex-1 text-sm">${name}</span>
-          <span class="text-slate-400 text-xs">สั่ง ${d.qty} ชิ้น</span>
-          <span class="font-semibold text-sm">${fmt(d.revenue)}</span>
-        </div>`).join('')
-    : `<p class="text-slate-400 text-xs text-center py-6">ไม่มีรายการในวันนี้</p>`;
-  // แสดงทุกใบ (รวม cancelled) ใน log แต่ label ชัดเจน
-  const allDay = orders.filter(o => o.date === date);
-  document.getElementById('sales-log').innerHTML = allDay.length
-    ? allDay.map(o => {
-        const c = o.status === 'cancelled';
-        return `<div class="border rounded-xl p-3 cursor-pointer hover:bg-slate-50 ${c?'border-red-200 opacity-60':''}"
-             onclick='showOrderPreview(${JSON.stringify(o)})'>
-          <div class="flex justify-between mb-1">
-            <span class="${c?'line-through text-slate-400':'text-indigo-500'} text-xs font-medium">${o.orderNo}</span>
-            ${c?'<span class="text-xs text-red-500 font-medium">ยกเลิก</span>':''}
-            <span class="text-slate-400 text-xs">${o.time} น.</span>
-            <span class="font-semibold text-sm ${c?'line-through text-slate-400':''}">${fmt(o.total)}</span>
-          </div>
-          <p class="text-xs text-slate-500">${o.customerName}</p>
-        </div>`;
-      }).join('')
-    : `<p class="text-slate-400 text-xs text-center py-6">ไม่มีรายการในวันนี้</p>`;
+async function createFirstUser() {
+  const username = document.getElementById('fu-username').value.trim()||'admin';
+  const password = document.getElementById('fu-password').value;
+  if (password.length<4) { toast('รหัสผ่านต้องมีอย่างน้อย 4 ตัว','bg-red-500'); return; }
+  const hash = await sha256(password);
+  await fdb.collection('users').doc(username).set({username,passwordHash:hash,createdAt:new Date().toISOString()});
+  document.getElementById('first-user-box').classList.add('hidden');
+  document.getElementById('login-username').value = username;
+  toast(`สร้างบัญชี "${username}" เรียบร้อย กรุณาเข้าสู่ระบบ`,'bg-green-600');
 }
 
-function renderMonthlyReport() {
-  const input   = document.getElementById('report-month');
-  const month   = input.value || ym();
-  if (!input.value) input.value = month;
-  const mOrders = activeOrders(orders.filter(o => o.date.startsWith(month)));
-  const revenue = mOrders.reduce((s, o) => s + o.total, 0);
-  const cost    = mOrders.reduce((s, o) => s + o.items.reduce((ss, i) => ss + i.cost * i.qty, 0), 0);
-  document.getElementById('m-revenue').textContent = fmt(revenue);
-  document.getElementById('m-cost').textContent    = fmt(cost);
-  document.getElementById('m-profit').textContent  = fmt(revenue - cost);
-  document.getElementById('m-txn').textContent     = mOrders.length + ' ใบ';
-  const custMap = {};
-  mOrders.forEach(o => {
-    const key = o.customerId || '__walkin__';
-    if (!custMap[key]) custMap[key] = { name: o.customerName, orders: 0, revenue: 0, profit: 0 };
-    custMap[key].orders++;
-    custMap[key].revenue += o.total;
-    custMap[key].profit  += o.total - o.items.reduce((ss, i) => ss + i.cost * i.qty, 0);
-  });
-  document.getElementById('m-cust-tbody').innerHTML = Object.values(custMap).sort((a,b)=>b.revenue-a.revenue).map((c,i)=>`
-    <tr class="border-t hover:bg-slate-50"><td class="px-4 py-3 text-slate-400">${i+1}</td><td class="px-4 py-3 font-medium">${c.name}</td><td class="px-4 py-3 text-right">${c.orders}</td><td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(c.revenue)}</td><td class="px-4 py-3 text-right text-green-600">${fmt(c.profit)}</td></tr>`).join('')
-    || `<tr><td colspan="5" class="text-center py-8 text-slate-400">ไม่มีรายการในเดือนนี้</td></tr>`;
-  const prodMap = {};
-  mOrders.forEach(o => o.items.forEach(i => {
-    if (!prodMap[i.name]) prodMap[i.name] = { qty:0, revenue:0, cost:0 };
-    prodMap[i.name].qty     += i.qty;
-    prodMap[i.name].revenue += i.price * i.qty;
-    prodMap[i.name].cost    += i.cost  * i.qty;
-  }));
-  document.getElementById('m-prod-tbody').innerHTML = Object.entries(prodMap).sort((a,b)=>b[1].revenue-a[1].revenue).map(([name,d],i)=>`
-    <tr class="border-t hover:bg-slate-50"><td class="px-4 py-3 text-slate-400">${i+1}</td><td class="px-4 py-3 font-medium">${name}</td><td class="px-4 py-3 text-right">${d.qty}</td><td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(d.revenue)}</td><td class="px-4 py-3 text-right text-slate-500">${fmt(d.cost)}</td><td class="px-4 py-3 text-right text-green-600">${fmt(d.revenue-d.cost)}</td></tr>`).join('')
-    || `<tr><td colspan="6" class="text-center py-8 text-slate-400">ไม่มีรายการในเดือนนี้</td></tr>`;
-}
-
-// ── Start ─────────────────────────────────────────────────
 init();
 </script>
 </body>
