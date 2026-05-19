@@ -52,6 +52,20 @@
         เข้าสู่ระบบ
       </button>
     </div>
+    <!-- แสดงเฉพาะตอนยังไม่มีผู้ใช้ในระบบ -->
+    <div id="first-user-box" class="hidden mt-6 border-t pt-5">
+      <p class="text-xs text-slate-400 text-center mb-3">ยังไม่มีผู้ใช้ในระบบ — สร้างบัญชี Admin ก่อนใช้งาน</p>
+      <div class="space-y-2">
+        <input id="fu-username" type="text" value="admin" placeholder="ชื่อผู้ใช้"
+          class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        <input id="fu-password" type="password" placeholder="รหัสผ่าน (อย่างน้อย 4 ตัว)"
+          class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        <button onclick="createFirstUser()"
+          class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition">
+          สร้างบัญชี Admin
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -75,6 +89,14 @@
       <!-- User + Logout -->
       <div class="flex items-center gap-2 border-l border-indigo-500 pl-3">
         <span id="header-user" class="text-xs text-indigo-200 hidden sm:inline"></span>
+        <button onclick="openUserModal()" title="สร้างผู้ใช้"
+          class="flex items-center gap-1 text-xs text-indigo-200 hover:text-white transition px-2 py-1 rounded-lg hover:bg-indigo-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+          </svg>
+          <span class="hidden sm:inline">เพิ่มผู้ใช้</span>
+        </button>
         <button onclick="doLogout()" title="ออกจากระบบ"
           class="flex items-center gap-1 text-xs text-indigo-200 hover:text-white transition px-2 py-1 rounded-lg hover:bg-indigo-600">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,6 +407,35 @@
 
 </div><!-- /screen-app -->
 
+<!-- Modal: สร้างผู้ใช้ -->
+<div id="user-modal" class="modal-wrap hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="modal-inner bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+    <h3 class="font-bold text-lg mb-4">สร้างผู้ใช้ใหม่</h3>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-medium text-slate-500 mb-1 block">ชื่อผู้ใช้</label>
+        <input id="nu-username" type="text" placeholder="ชื่อผู้ใช้"
+          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-500 mb-1 block">รหัสผ่าน</label>
+        <input id="nu-password" type="password" placeholder="อย่างน้อย 4 ตัวอักษร"
+          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-500 mb-1 block">ยืนยันรหัสผ่าน</label>
+        <input id="nu-confirm" type="password" placeholder="ยืนยันรหัสผ่าน"
+          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          onkeydown="if(event.key==='Enter') saveNewUser()" />
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="closeUserModal()" class="flex-1 border rounded-xl py-2.5 font-medium text-slate-600 hover:bg-slate-50 transition">ยกเลิก</button>
+        <button onclick="saveNewUser()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition">สร้างผู้ใช้</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="hidden fixed bottom-24 lg:bottom-5 right-4 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] max-w-[calc(100vw-2rem)]"></div>
 
@@ -448,7 +499,7 @@ function saveSession(username) {
 }
 
 // ── Init ──────────────────────────────────────────────────
-function init() {
+async function init() {
   initFirebase(FIREBASE_CFG);
   const ses = getSession();
   if (ses) {
@@ -459,6 +510,13 @@ function init() {
     initAppUI();
   } else {
     showScreen('login');
+    // ตรวจสอบว่ามี user ในระบบหรือยัง
+    try {
+      const snap = await fdb.collection('users').limit(1).get();
+      if (snap.empty) {
+        document.getElementById('first-user-box').classList.remove('hidden');
+      }
+    } catch (e) {}
   }
 }
 
@@ -502,6 +560,48 @@ function doLogout() {
   localStorage.removeItem(SES_KEY);
   document.getElementById('login-password').value = '';
   showScreen('login');
+}
+
+// ── User Management ───────────────────────────────────────
+function openUserModal() {
+  document.getElementById('nu-username').value = '';
+  document.getElementById('nu-password').value = '';
+  document.getElementById('nu-confirm').value  = '';
+  document.getElementById('user-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('nu-username').focus(), 100);
+}
+function closeUserModal() {
+  document.getElementById('user-modal').classList.add('hidden');
+}
+document.getElementById('user-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeUserModal();
+});
+
+async function saveNewUser() {
+  const username = document.getElementById('nu-username').value.trim();
+  const password = document.getElementById('nu-password').value;
+  const confirm  = document.getElementById('nu-confirm').value;
+  if (!username) { toast('กรุณากรอกชื่อผู้ใช้', 'bg-red-500'); return; }
+  if (password.length < 4) { toast('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร', 'bg-red-500'); return; }
+  if (password !== confirm) { toast('รหัสผ่านไม่ตรงกัน', 'bg-red-500'); return; }
+  const existing = await fdb.collection('users').doc(username).get();
+  if (existing.exists) { toast('ชื่อผู้ใช้นี้มีอยู่แล้ว', 'bg-red-500'); return; }
+  const hash = await sha256(password);
+  await fdb.collection('users').doc(username).set({ username, passwordHash: hash, createdAt: new Date().toISOString(), createdBy: currentUser });
+  toast(`สร้างผู้ใช้ "${username}" เรียบร้อย`, 'bg-green-600');
+  closeUserModal();
+}
+
+// Bootstrap: สร้าง Admin ครั้งแรก (ใช้บนหน้า login เมื่อยังไม่มี user)
+async function createFirstUser() {
+  const username = document.getElementById('fu-username').value.trim() || 'admin';
+  const password = document.getElementById('fu-password').value;
+  if (password.length < 4) { toast('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร', 'bg-red-500'); return; }
+  const hash = await sha256(password);
+  await fdb.collection('users').doc(username).set({ username, passwordHash: hash, createdAt: new Date().toISOString() });
+  document.getElementById('first-user-box').classList.add('hidden');
+  document.getElementById('login-username').value = username;
+  toast(`สร้างบัญชี "${username}" เรียบร้อย กรุณาเข้าสู่ระบบ`, 'bg-green-600');
 }
 
 // ── Firestore Listeners (real-time sync ทุกเครื่อง) ───────
