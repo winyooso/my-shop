@@ -2,24 +2,64 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#4338ca" />
   <title>ร้านของฉัน</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* ป้องกัน iOS zoom เมื่อ focus input */
+    input, select, textarea { font-size: 16px !important; }
+
+    /* desktop nav button */
     .nav-btn { padding:.375rem 1rem; border-radius:9999px; font-size:.875rem; font-weight:500; color:rgba(255,255,255,.75); transition:all .15s; }
     .nav-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
     .nav-btn.active { background:#fff; color:#4338ca; }
+
+    /* report sub-tab */
     .rtab { padding:.375rem 1rem; border-radius:9999px; font-size:.8125rem; font-weight:500; transition:all .15s; cursor:pointer; border:1px solid #e2e8f0; color:#64748b; }
     .rtab.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+
+    /* mobile bottom nav */
+    .mob-nav { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 4px; font-size:11px; font-weight:500; color:#94a3b8; transition:color .15s; -webkit-tap-highlight-color:transparent; }
+    .mob-nav.active { color:#4338ca; }
+    .mob-nav svg { width:22px; height:22px; }
+
+    /* ตารางแปลงเป็น card บนมือถือ */
+    @media (max-width: 1023px) {
+      .resp-table { display:block; }
+      .resp-table thead { display:none; }
+      .resp-table tbody { display:block; }
+      .resp-table tr { display:block; background:#fff; border-radius:12px; margin-bottom:10px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+      .resp-table td { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-bottom:1px solid #f8fafc; }
+      .resp-table td:last-child { border-bottom:none; }
+      .resp-table td[data-label]::before { content:attr(data-label); font-weight:600; color:#64748b; font-size:12px; flex-shrink:0; margin-right:8px; }
+    }
+
+    /* safe area สำหรับ iPhone X ขึ้นไป */
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+    /* Modal slide-up บนมือถือ */
+    @media (max-width: 1023px) {
+      .modal-wrap { align-items:flex-end !important; padding:0 !important; }
+      .modal-inner { border-radius:20px 20px 0 0 !important; max-width:100% !important; max-height:92vh; overflow-y:auto; }
+    }
+
+    /* touch target ขั้นต่ำ */
+    button { min-height:36px; }
+    @media (max-width: 1023px) { button { min-height:44px; } }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-800 text-sm">
 
-<!-- ── แถบนำทาง ────────────────────────────────────────── -->
+<!-- ══ HEADER (desktop) ══════════════════════════════════ -->
 <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
   <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
     <span class="font-bold text-base tracking-widest">ร้านของฉัน</span>
-    <nav class="flex gap-1">
+    <!-- desktop nav -->
+    <nav class="hidden lg:flex gap-1">
       <button class="nav-btn active" data-tab="order">ใบสั่งซื้อ</button>
       <button class="nav-btn"        data-tab="inventory">คลังสินค้า</button>
       <button class="nav-btn"        data-tab="customers">ลูกค้า</button>
@@ -28,99 +68,139 @@
   </div>
 </header>
 
-<!-- ══════════════════════════════════════════════════════════
-     หน้าสร้างใบสั่งซื้อ
-══════════════════════════════════════════════════════════ -->
-<main id="tab-order" class="tab-page max-w-7xl mx-auto p-4">
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+<!-- ══ BOTTOM NAV (mobile) ═══════════════════════════════ -->
+<nav class="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 shadow-lg z-40 flex safe-bottom">
+  <button class="mob-nav active" data-tab="order">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    ใบสั่งซื้อ
+  </button>
+  <button class="mob-nav" data-tab="inventory">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    คลังสินค้า
+  </button>
+  <button class="mob-nav" data-tab="customers">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    ลูกค้า
+  </button>
+  <button class="mob-nav" data-tab="report">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    รายงาน
+  </button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     หน้าใบสั่งซื้อ
+══════════════════════════════════════════════════════ -->
+<main id="tab-order" class="tab-page max-w-7xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
+
+  <!-- Mobile: tab switcher สินค้า / รายการ -->
+  <div class="lg:hidden flex rounded-xl overflow-hidden border border-slate-200 mb-3 bg-white shadow-sm">
+    <button id="mob-products-tab" onclick="setMobView('products')"
+      class="flex-1 py-3 text-sm font-semibold bg-indigo-600 text-white transition">
+      เลือกสินค้า
+    </button>
+    <button id="mob-cart-tab" onclick="setMobView('cart')"
+      class="flex-1 py-3 text-sm font-semibold text-slate-600 transition relative">
+      รายการ
+      <span id="mob-badge"
+        class="hidden absolute top-1.5 right-4 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1">
+      </span>
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4 items-start">
 
     <!-- ซ้าย: ตารางสินค้า -->
-    <section class="lg:col-span-2 space-y-3">
+    <section id="mob-products-view" class="lg:col-span-2 space-y-3">
       <input id="pos-search" type="text" placeholder="ค้นหาสินค้า…"
-        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" />
+        class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white" />
       <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
 
-      <!-- รายการสั่งซื้อล่าสุด -->
-      <div class="mt-4">
-        <h2 class="font-bold text-base mb-3 text-slate-700">รายการสั่งซื้อล่าสุด</h2>
+      <!-- ประวัติใบสั่งซื้อ (เฉพาะ desktop หรือ products view บน mobile) -->
+      <div class="mt-2">
+        <h2 class="font-bold text-sm mb-2 text-slate-600 px-1">รายการสั่งซื้อล่าสุด</h2>
         <div id="order-history" class="space-y-2"></div>
       </div>
     </section>
 
     <!-- ขวา: ฟอร์มใบสั่งซื้อ -->
-    <section class="bg-white rounded-2xl shadow p-4 flex flex-col gap-3 lg:sticky lg:top-[72px]">
-      <h2 class="font-bold text-base border-b pb-2">รายการสินค้า</h2>
+    <section id="mob-cart-view" class="space-y-3 lg:sticky lg:top-[72px]">
+      <div class="bg-white rounded-2xl shadow p-4 flex flex-col gap-3">
+        <h2 class="font-bold text-base border-b pb-2">รายการสินค้า</h2>
 
-      <!-- เลือกลูกค้า -->
-      <div class="space-y-1.5">
-        <label class="text-slate-500 text-xs font-medium">ลูกค้า</label>
-        <select id="order-customer"
-          class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-          <option value="">— ลูกค้าทั่วไป —</option>
-        </select>
-      </div>
-
-      <!-- รายการที่เลือก -->
-      <div id="order-items" class="flex flex-col gap-2 min-h-[100px]">
-        <p class="text-slate-400 text-xs text-center mt-6">เลือกสินค้าจากรายการด้านซ้าย</p>
-      </div>
-
-      <!-- ส่วนลด -->
-      <div class="flex items-center gap-2 border-t pt-3">
-        <label class="text-slate-500 shrink-0 w-16 text-xs">ส่วนลด (฿)</label>
-        <input id="discount-input" type="number" min="0" step="any" placeholder="0"
-          class="flex-1 border rounded-xl px-2 py-1.5 text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          oninput="renderOrderSummary()" />
-      </div>
-
-      <!-- ยอดรวม -->
-      <div class="bg-slate-50 rounded-xl p-3 space-y-1.5">
-        <div class="flex justify-between text-slate-600">
-          <span>ยอดสินค้า</span><span id="subtotal-display">฿0.00</span>
+        <!-- เลือกลูกค้า -->
+        <div class="space-y-1">
+          <label class="text-slate-500 text-xs font-medium">ลูกค้า</label>
+          <select id="order-customer"
+            class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+            <option value="">— ลูกค้าทั่วไป —</option>
+          </select>
         </div>
-        <div class="flex justify-between text-slate-600">
-          <span>ส่วนลด</span><span id="discount-display" class="text-red-500">-฿0.00</span>
-        </div>
-        <div class="flex justify-between font-bold text-base border-t pt-1.5 mt-1">
-          <span>ยอดสุทธิ</span><span id="total-display" class="text-indigo-600">฿0.00</span>
-        </div>
-      </div>
 
-      <!-- หมายเหตุ -->
-      <div class="space-y-1">
-        <label class="text-slate-500 text-xs font-medium">หมายเหตุ</label>
-        <textarea id="order-note" rows="2" placeholder="หมายเหตุ / เงื่อนไข…"
-          class="w-full border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
-      </div>
+        <!-- รายการที่เลือก -->
+        <div id="order-items" class="flex flex-col gap-2 min-h-[80px]">
+          <p class="text-slate-400 text-xs text-center mt-4">เลือกสินค้าจากรายการ</p>
+        </div>
 
-      <button onclick="createOrder()"
-        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
-        </svg>
-        สร้างใบสั่งซื้อ
-      </button>
-      <button onclick="clearOrder()" class="text-xs text-slate-400 hover:text-red-500 transition text-center">
-        ล้างรายการ
-      </button>
+        <!-- ส่วนลด -->
+        <div class="flex items-center gap-2 border-t pt-3">
+          <label class="text-slate-500 shrink-0 text-xs w-20">ส่วนลด (฿)</label>
+          <input id="discount-input" type="number" min="0" step="any" placeholder="0"
+            class="flex-1 border rounded-xl px-3 py-2 text-right focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            oninput="renderOrderSummary()" />
+        </div>
+
+        <!-- ยอดรวม -->
+        <div class="bg-slate-50 rounded-xl p-3 space-y-1.5 text-sm">
+          <div class="flex justify-between text-slate-600">
+            <span>ยอดสินค้า</span><span id="subtotal-display">฿0.00</span>
+          </div>
+          <div class="flex justify-between text-slate-600">
+            <span>ส่วนลด</span><span id="discount-display" class="text-red-500">-฿0.00</span>
+          </div>
+          <div class="flex justify-between font-bold text-base border-t pt-2">
+            <span>ยอดสุทธิ</span><span id="total-display" class="text-indigo-600">฿0.00</span>
+          </div>
+        </div>
+
+        <!-- หมายเหตุ -->
+        <div class="space-y-1">
+          <label class="text-slate-500 text-xs font-medium">หมายเหตุ</label>
+          <textarea id="order-note" rows="2" placeholder="หมายเหตุ / เงื่อนไข…"
+            class="w-full border rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"></textarea>
+        </div>
+
+        <button onclick="createOrder()"
+          class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+          </svg>
+          สร้างใบสั่งซื้อ
+        </button>
+        <button onclick="clearOrder()" class="text-xs text-slate-400 hover:text-red-500 active:text-red-600 transition text-center py-1">
+          ล้างรายการ
+        </button>
+      </div>
     </section>
   </div>
 </main>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════════════
      คลังสินค้า
-══════════════════════════════════════════════════════════ -->
-<main id="tab-inventory" class="tab-page hidden max-w-5xl mx-auto p-4">
+══════════════════════════════════════════════════════ -->
+<main id="tab-inventory" class="tab-page hidden max-w-5xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
   <div class="flex items-center justify-between mb-4">
     <h1 class="font-bold text-lg">คลังสินค้า</h1>
     <button onclick="openProductModal()"
-      class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">
+      class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-4 py-2 rounded-xl transition font-medium">
       + เพิ่มสินค้า
     </button>
   </div>
-  <div id="low-stock-bar" class="hidden mb-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 text-amber-800"></div>
-  <div class="bg-white rounded-2xl shadow overflow-x-auto">
+  <div id="low-stock-bar" class="hidden mb-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 text-amber-800 text-sm"></div>
+
+  <!-- desktop table -->
+  <div class="hidden lg:block bg-white rounded-2xl shadow overflow-x-auto">
     <table class="w-full">
       <thead class="bg-slate-50 text-xs uppercase text-slate-500">
         <tr>
@@ -132,23 +212,28 @@
           <th class="px-4 py-3 w-28"></th>
         </tr>
       </thead>
-      <tbody id="inv-tbody"></tbody>
+      <tbody id="inv-tbody-desktop"></tbody>
     </table>
   </div>
+
+  <!-- mobile cards -->
+  <div id="inv-cards-mobile" class="lg:hidden space-y-2"></div>
 </main>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════════════
      ลูกค้า
-══════════════════════════════════════════════════════════ -->
-<main id="tab-customers" class="tab-page hidden max-w-4xl mx-auto p-4">
+══════════════════════════════════════════════════════ -->
+<main id="tab-customers" class="tab-page hidden max-w-4xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
   <div class="flex items-center justify-between mb-4">
     <h1 class="font-bold text-lg">รายการลูกค้า</h1>
     <button onclick="openCustomerModal()"
-      class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl transition font-medium">
+      class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white px-4 py-2 rounded-xl transition font-medium">
       + เพิ่มลูกค้า
     </button>
   </div>
-  <div class="bg-white rounded-2xl shadow overflow-x-auto">
+
+  <!-- desktop table -->
+  <div class="hidden lg:block bg-white rounded-2xl shadow overflow-x-auto">
     <table class="w-full">
       <thead class="bg-slate-50 text-xs uppercase text-slate-500">
         <tr>
@@ -160,15 +245,18 @@
           <th class="px-4 py-3 w-28"></th>
         </tr>
       </thead>
-      <tbody id="cust-tbody"></tbody>
+      <tbody id="cust-tbody-desktop"></tbody>
     </table>
   </div>
+
+  <!-- mobile cards -->
+  <div id="cust-cards-mobile" class="lg:hidden space-y-2"></div>
 </main>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════════════
      รายงาน
-══════════════════════════════════════════════════════════ -->
-<main id="tab-report" class="tab-page hidden max-w-5xl mx-auto p-4">
+══════════════════════════════════════════════════════ -->
+<main id="tab-report" class="tab-page hidden max-w-5xl mx-auto p-3 lg:p-4 pb-24 lg:pb-6">
   <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
     <div class="flex gap-2">
       <button class="rtab active" id="mode-daily"   onclick="setReportMode('daily')">รายวัน</button>
@@ -176,33 +264,33 @@
     </div>
     <div id="report-daily-ctrl">
       <input id="report-date" type="date"
-        class="border rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+        class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
         onchange="renderDailyReport()" />
     </div>
     <div id="report-monthly-ctrl" class="hidden">
       <input id="report-month" type="month"
-        class="border rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+        class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
         onchange="renderMonthlyReport()" />
     </div>
   </div>
 
-  <!-- รายงานรายวัน -->
+  <!-- รายวัน -->
   <div id="report-daily">
-    <div class="grid grid-cols-3 gap-4 mb-5">
-      <div class="bg-white rounded-2xl shadow p-4">
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="bg-white rounded-2xl shadow p-3 lg:p-4">
         <p class="text-xs text-slate-500 mb-1">มูลค่าสั่งซื้อ</p>
-        <p id="stat-revenue" class="text-2xl font-bold text-indigo-600">฿0.00</p>
+        <p id="stat-revenue" class="text-lg lg:text-2xl font-bold text-indigo-600">฿0.00</p>
       </div>
-      <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">ต้นทุนรวม</p>
-        <p id="stat-cost" class="text-2xl font-bold text-slate-600">฿0.00</p>
+      <div class="bg-white rounded-2xl shadow p-3 lg:p-4">
+        <p class="text-xs text-slate-500 mb-1">ต้นทุน</p>
+        <p id="stat-cost" class="text-lg lg:text-2xl font-bold text-slate-600">฿0.00</p>
       </div>
-      <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">กำไรขั้นต้น</p>
-        <p id="stat-profit" class="text-2xl font-bold text-green-600">฿0.00</p>
+      <div class="bg-white rounded-2xl shadow p-3 lg:p-4">
+        <p class="text-xs text-slate-500 mb-1">กำไร</p>
+        <p id="stat-profit" class="text-lg lg:text-2xl font-bold text-green-600">฿0.00</p>
       </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
       <div class="bg-white rounded-2xl shadow p-4">
         <h2 class="font-semibold mb-3">สินค้าสั่งซื้อมากสุด</h2>
         <div id="top-sellers"></div>
@@ -214,32 +302,32 @@
     </div>
   </div>
 
-  <!-- รายงานรายเดือน -->
+  <!-- รายเดือน -->
   <div id="report-monthly" class="hidden">
-    <div class="grid grid-cols-4 gap-4 mb-5">
-      <div class="bg-white rounded-2xl shadow p-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+      <div class="bg-white rounded-2xl shadow p-3 lg:p-4">
         <p class="text-xs text-slate-500 mb-1">มูลค่าสั่งซื้อ</p>
-        <p id="m-revenue" class="text-xl font-bold text-indigo-600">฿0.00</p>
+        <p id="m-revenue" class="text-lg font-bold text-indigo-600">฿0.00</p>
       </div>
-      <div class="bg-white rounded-2xl shadow p-4">
+      <div class="bg-white rounded-2xl shadow p-3 lg:p-4">
         <p class="text-xs text-slate-500 mb-1">ต้นทุน</p>
-        <p id="m-cost" class="text-xl font-bold text-slate-600">฿0.00</p>
+        <p id="m-cost" class="text-lg font-bold text-slate-600">฿0.00</p>
       </div>
-      <div class="bg-white rounded-2xl shadow p-4">
-        <p class="text-xs text-slate-500 mb-1">กำไรขั้นต้น</p>
-        <p id="m-profit" class="text-xl font-bold text-green-600">฿0.00</p>
+      <div class="bg-white rounded-2xl shadow p-3 lg:p-4">
+        <p class="text-xs text-slate-500 mb-1">กำไร</p>
+        <p id="m-profit" class="text-lg font-bold text-green-600">฿0.00</p>
       </div>
-      <div class="bg-white rounded-2xl shadow p-4">
+      <div class="bg-white rounded-2xl shadow p-3 lg:p-4">
         <p class="text-xs text-slate-500 mb-1">จำนวนใบ</p>
-        <p id="m-txn" class="text-xl font-bold text-slate-700">0</p>
+        <p id="m-txn" class="text-lg font-bold text-slate-700">0</p>
       </div>
     </div>
-    <div class="flex gap-2 mb-4">
+    <div class="flex gap-2 mb-3">
       <button class="rtab active" id="msub-cust" onclick="setMonthSubTab('cust')">แยกตามลูกค้า</button>
       <button class="rtab"        id="msub-prod" onclick="setMonthSubTab('prod')">แยกตามสินค้า</button>
     </div>
     <div id="m-by-cust" class="bg-white rounded-2xl shadow overflow-x-auto">
-      <table class="w-full">
+      <table class="w-full min-w-[400px]">
         <thead class="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
             <th class="text-left px-4 py-3 w-10">#</th>
@@ -252,8 +340,8 @@
         <tbody id="m-cust-tbody"></tbody>
       </table>
     </div>
-    <div id="m-by-prod" class="hidden bg-white rounded-2xl shadow overflow-x-auto">
-      <table class="w-full">
+    <div id="m-by-prod" class="hidden bg-white rounded-2xl shadow overflow-x-auto mt-3">
+      <table class="w-full min-w-[480px]">
         <thead class="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
             <th class="text-left px-4 py-3 w-10">#</th>
@@ -270,85 +358,85 @@
   </div>
 </main>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════════════
      Modal: เพิ่ม/แก้ไขสินค้า
-══════════════════════════════════════════════════════════ -->
-<div id="product-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+══════════════════════════════════════════════════════ -->
+<div id="product-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex modal-wrap items-end lg:items-center justify-center lg:px-4">
+  <div class="modal-inner bg-white w-full lg:max-w-md rounded-t-2xl lg:rounded-2xl shadow-xl p-6">
     <h2 id="prod-modal-title" class="font-bold text-lg mb-5">เพิ่มสินค้า</h2>
     <div class="space-y-3">
       <input id="f-name"  type="text"   placeholder="ชื่อสินค้า *"
-        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       <div class="grid grid-cols-2 gap-3">
         <input id="f-cost"  type="number" step="any" min="0" placeholder="ต้นทุน *"
-          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
         <input id="f-price" type="number" step="any" min="0" placeholder="ราคาขาย *"
-          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       </div>
       <div class="grid grid-cols-2 gap-3">
         <input id="f-qty" type="number" min="0" placeholder="จำนวน *"
-          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
         <input id="f-low" type="number" min="0" placeholder="แจ้งเตือนเมื่อเหลือ"
-          class="border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          class="border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       </div>
     </div>
     <div class="flex gap-3 mt-6">
       <button onclick="saveProduct()"
-        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">บันทึก</button>
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">บันทึก</button>
       <button onclick="closeProductModal()"
-        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">ยกเลิก</button>
+        class="flex-1 border hover:bg-slate-50 py-3 rounded-xl transition">ยกเลิก</button>
     </div>
+    <div class="safe-bottom"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════════════
      Modal: เพิ่ม/แก้ไขลูกค้า
-══════════════════════════════════════════════════════════ -->
-<div id="customer-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+══════════════════════════════════════════════════════ -->
+<div id="customer-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex modal-wrap items-end lg:items-center justify-center lg:px-4">
+  <div class="modal-inner bg-white w-full lg:max-w-md rounded-t-2xl lg:rounded-2xl shadow-xl p-6">
     <h2 id="cust-modal-title" class="font-bold text-lg mb-5">เพิ่มลูกค้า</h2>
     <div class="space-y-3">
       <input id="cf-name"  type="text" placeholder="ชื่อลูกค้า *"
-        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      <input id="cf-phone" type="text" placeholder="เบอร์โทรศัพท์"
-        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      <input id="cf-phone" type="tel"  placeholder="เบอร์โทรศัพท์"
+        class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
       <textarea id="cf-note" rows="2" placeholder="หมายเหตุ (ที่อยู่ ฯลฯ)"
-        class="w-full border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+        class="w-full border rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
     </div>
     <div class="flex gap-3 mt-6">
       <button onclick="saveCustomer()"
-        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition">บันทึก</button>
+        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">บันทึก</button>
       <button onclick="closeCustomerModal()"
-        class="flex-1 border hover:bg-slate-50 py-2 rounded-xl transition">ยกเลิก</button>
+        class="flex-1 border hover:bg-slate-50 py-3 rounded-xl transition">ยกเลิก</button>
     </div>
+    <div class="safe-bottom"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════════════
      Modal: ดูใบสั่งซื้อ / ดาวน์โหลด PDF
-══════════════════════════════════════════════════════════ -->
-<div id="order-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4 py-6 overflow-y-auto">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg my-auto">
-    <!-- Action bar (ซ่อนตอนพิมพ์) -->
-    <div class="flex items-center justify-between px-6 pt-5 pb-3 border-b">
+══════════════════════════════════════════════════════ -->
+<div id="order-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex modal-wrap items-end lg:items-center justify-center lg:px-4 lg:py-6">
+  <div class="modal-inner bg-white w-full lg:max-w-lg rounded-t-2xl lg:rounded-2xl shadow-xl">
+    <!-- action bar -->
+    <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b sticky top-0 bg-white rounded-t-2xl lg:rounded-t-2xl z-10">
       <span class="font-bold text-base">ใบสั่งซื้อ</span>
       <div class="flex gap-2">
         <button onclick="downloadPDF()"
-          class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition">
+          class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
           </svg>
-          ดาวน์โหลด PDF
+          PDF
         </button>
         <button onclick="closeOrderModal()"
-          class="border hover:bg-slate-50 text-sm px-4 py-1.5 rounded-lg transition">ปิด</button>
+          class="border hover:bg-slate-50 text-sm px-4 py-2 rounded-lg transition">ปิด</button>
       </div>
     </div>
-
-    <!-- ตัวอย่างใบสั่งซื้อ -->
-    <div id="order-preview" class="px-6 py-5 space-y-4">
-      <!-- header -->
+    <!-- content -->
+    <div id="order-preview" class="px-5 py-4 space-y-4 overflow-y-auto">
       <div class="flex justify-between items-start">
         <div>
           <p class="font-bold text-xl text-indigo-700">ร้านของฉัน</p>
@@ -356,36 +444,30 @@
         </div>
         <div class="text-right text-sm">
           <p class="font-bold text-slate-700" id="pv-order-no"></p>
-          <p class="text-slate-500 text-xs" id="pv-date"></p>
+          <p class="text-slate-500 text-xs mt-0.5" id="pv-date"></p>
         </div>
       </div>
-
-      <!-- ข้อมูลลูกค้า -->
       <div class="bg-slate-50 rounded-xl p-3 text-sm">
         <p class="text-xs text-slate-400 mb-1 uppercase font-medium">ลูกค้า</p>
         <p class="font-semibold" id="pv-cust-name"></p>
         <p class="text-slate-500" id="pv-cust-phone"></p>
-        <p class="text-slate-500 text-xs" id="pv-cust-note"></p>
+        <p class="text-slate-400 text-xs" id="pv-cust-note"></p>
       </div>
-
-      <!-- รายการสินค้า -->
-      <table class="w-full text-sm">
-        <thead class="border-b-2 border-slate-200">
-          <tr class="text-xs text-slate-500 uppercase">
-            <th class="text-left py-2">รายการ</th>
-            <th class="text-center py-2 w-14">จำนวน</th>
-            <th class="text-right py-2 w-24">ราคา/หน่วย</th>
-            <th class="text-right py-2 w-24">รวม</th>
-          </tr>
-        </thead>
-        <tbody id="pv-items" class="divide-y divide-slate-100"></tbody>
-      </table>
-
-      <!-- ยอดรวม -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[280px]">
+          <thead class="border-b-2 border-slate-200">
+            <tr class="text-xs text-slate-500 uppercase">
+              <th class="text-left py-2">รายการ</th>
+              <th class="text-center py-2 w-12">จำนวน</th>
+              <th class="text-right py-2 w-20">ราคา</th>
+              <th class="text-right py-2 w-20">รวม</th>
+            </tr>
+          </thead>
+          <tbody id="pv-items" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
       <div class="border-t-2 border-slate-200 pt-3 space-y-1.5 text-sm">
-        <div class="flex justify-between text-slate-600">
-          <span>ยอดสินค้า</span><span id="pv-subtotal"></span>
-        </div>
+        <div class="flex justify-between text-slate-600"><span>ยอดสินค้า</span><span id="pv-subtotal"></span></div>
         <div class="flex justify-between text-slate-600" id="pv-discount-row">
           <span>ส่วนลด</span><span id="pv-discount" class="text-red-500"></span>
         </div>
@@ -393,34 +475,25 @@
           <span>ยอดสุทธิ</span><span id="pv-total" class="text-indigo-600"></span>
         </div>
       </div>
-
-      <!-- หมายเหตุ -->
       <div id="pv-note-row" class="hidden border-t pt-3 text-sm">
         <p class="text-xs text-slate-400 uppercase font-medium mb-1">หมายเหตุ</p>
         <p id="pv-note" class="text-slate-600"></p>
       </div>
-
-      <!-- ลายเซ็น -->
-      <div class="border-t pt-4 mt-2 grid grid-cols-2 gap-6 text-center text-xs text-slate-400">
-        <div>
-          <div class="border-b border-dashed border-slate-300 mb-1 h-10"></div>
-          <p>ผู้สั่งซื้อ</p>
-        </div>
-        <div>
-          <div class="border-b border-dashed border-slate-300 mb-1 h-10"></div>
-          <p>ผู้ขาย / ผู้อนุมัติ</p>
-        </div>
+      <div class="border-t pt-4 grid grid-cols-2 gap-6 text-center text-xs text-slate-400">
+        <div><div class="border-b border-dashed border-slate-300 mb-1 h-10"></div><p>ผู้สั่งซื้อ</p></div>
+        <div><div class="border-b border-dashed border-slate-300 mb-1 h-10"></div><p>ผู้ขาย / ผู้อนุมัติ</p></div>
       </div>
+      <div class="safe-bottom"></div>
     </div>
   </div>
 </div>
 
 <!-- ── Toast ─────────────────────────────────────────────── -->
-<div id="toast" class="hidden fixed bottom-5 right-5 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60]"></div>
+<div id="toast" class="hidden fixed bottom-24 lg:bottom-5 right-4 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] max-w-[calc(100vw-2rem)]"></div>
 
-<!-- ══════════════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════════════════
      JavaScript
-══════════════════════════════════════════════════════════ -->
+══════════════════════════════════════════════════════ -->
 <script>
 // ── Storage ───────────────────────────────────────────────
 const db = {
@@ -430,7 +503,7 @@ const db = {
   setOrders:    d  => localStorage.setItem('sp_orders',    JSON.stringify(d)),
   customers:    () => JSON.parse(localStorage.getItem('sp_customers') || '[]'),
   setCustomers: d  => localStorage.setItem('sp_customers', JSON.stringify(d)),
-  nextOrderNo:  ()  => {
+  nextOrderNo:  () => {
     const n = parseInt(localStorage.getItem('sp_order_counter') || '0') + 1;
     localStorage.setItem('sp_order_counter', n);
     return 'PO-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(n).padStart(3,'0');
@@ -441,25 +514,31 @@ const uid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const fmt   = n  => '฿' + Number(n).toLocaleString('th', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const today = () => new Date().toISOString().slice(0, 10);
 const ym    = () => new Date().toISOString().slice(0, 7);
+const isMob = () => window.innerWidth < 1024;
 
-// ── สลับแท็บ ─────────────────────────────────────────────
-document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
-    if (btn.dataset.tab === 'inventory') renderInventory();
-    if (btn.dataset.tab === 'customers') renderCustomers();
-    if (btn.dataset.tab === 'report')    renderDailyReport();
-    if (btn.dataset.tab === 'order')     { renderGrid(); populateCustomerSelect(); renderOrderHistory(); }
-  });
+// ── Tab switching (desktop + mobile nav) ──────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  // desktop nav
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  // mobile bottom nav
+  document.querySelectorAll('.mob-nav').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  // render hooks
+  if (tab === 'inventory') renderInventory();
+  if (tab === 'customers') renderCustomers();
+  if (tab === 'report')    renderDailyReport();
+  if (tab === 'order')     { renderGrid(); populateCustomerSelect(); renderOrderHistory(); }
+}
+
+document.querySelectorAll('.nav-btn, .mob-nav').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
 // ── Toast ─────────────────────────────────────────────────
 function toast(msg, cls = 'bg-slate-800') {
   const el = document.getElementById('toast');
-  el.className = `fixed bottom-5 right-5 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] ${cls}`;
+  el.className = `fixed ${isMob() ? 'bottom-24' : 'bottom-5'} right-4 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-[60] max-w-[calc(100vw-2rem)] ${cls}`;
   el.textContent = msg;
   el.classList.remove('hidden');
   clearTimeout(el._t);
@@ -479,48 +558,65 @@ function renderInventory() {
   if (low.length)
     bar.innerHTML = '⚠ สินค้าใกล้หมด: ' + low.map(p => `<b>${p.name}</b> (เหลือ ${p.qty})`).join(', ');
 
-  const tbody = document.getElementById('inv-tbody');
   if (!products.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีสินค้า</td></tr>`;
+    const empty = `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีสินค้า</td></tr>`;
+    document.getElementById('inv-tbody-desktop').innerHTML = empty;
+    document.getElementById('inv-cards-mobile').innerHTML =
+      `<p class="text-center py-10 text-slate-400">ยังไม่มีสินค้า</p>`;
     return;
   }
-  tbody.innerHTML = products.map(p => `
+
+  // Desktop table rows
+  document.getElementById('inv-tbody-desktop').innerHTML = products.map(p => `
     <tr class="border-t hover:bg-slate-50 ${p.qty <= p.lowStock ? 'bg-amber-50/60' : ''}">
       <td class="px-4 py-3 font-medium">
-        ${p.name}
-        ${p.qty <= p.lowStock ? '<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">ใกล้หมด</span>' : ''}
+        ${p.name}${p.qty <= p.lowStock ? ' <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">ใกล้หมด</span>' : ''}
       </td>
       <td class="px-4 py-3 text-right text-slate-500">${fmt(p.cost)}</td>
       <td class="px-4 py-3 text-right font-semibold">${fmt(p.price)}</td>
       <td class="px-4 py-3 text-right">${p.qty}</td>
-      <td class="px-4 py-3 text-right text-slate-400">${p.lowStock ?? '—'}</td>
+      <td class="px-4 py-3 text-right text-slate-400">${p.lowStock || '—'}</td>
       <td class="px-4 py-3 text-right space-x-3">
         <button onclick="openProductModal('${p.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">แก้ไข</button>
         <button onclick="deleteProduct('${p.id}')"    class="text-red-400 hover:text-red-600 font-medium">ลบ</button>
       </td>
     </tr>`).join('');
+
+  // Mobile cards
+  document.getElementById('inv-cards-mobile').innerHTML = products.map(p => `
+    <div class="bg-white rounded-2xl shadow border ${p.qty <= p.lowStock ? 'border-amber-300' : 'border-transparent'} overflow-hidden">
+      <div class="px-4 py-3 flex items-center justify-between border-b border-slate-100">
+        <div>
+          <span class="font-semibold">${p.name}</span>
+          ${p.qty <= p.lowStock ? ' <span class="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">ใกล้หมด</span>' : ''}
+        </div>
+        <div class="flex gap-3">
+          <button onclick="openProductModal('${p.id}')" class="text-indigo-500 font-medium text-sm">แก้ไข</button>
+          <button onclick="deleteProduct('${p.id}')"    class="text-red-400 font-medium text-sm">ลบ</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-4 divide-x divide-slate-100 text-center">
+        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">ต้นทุน</p><p class="font-semibold text-sm">${fmt(p.cost)}</p></div>
+        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">ราคาขาย</p><p class="font-semibold text-sm text-indigo-600">${fmt(p.price)}</p></div>
+        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">คงเหลือ</p><p class="font-semibold text-sm">${p.qty}</p></div>
+        <div class="py-2.5 px-2"><p class="text-xs text-slate-400 mb-0.5">แจ้งเตือน</p><p class="text-sm text-slate-500">${p.lowStock || '—'}</p></div>
+      </div>
+    </div>`).join('');
 }
 
 function openProductModal(id = null) {
   _editProdId = id;
   const p = id ? db.products().find(x => x.id === id) : {};
   document.getElementById('prod-modal-title').textContent = id ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า';
-  ['f-name','f-cost','f-price','f-qty','f-low'].forEach(f => document.getElementById(f).value = '');
-  if (p) {
-    document.getElementById('f-name').value  = p.name     ?? '';
-    document.getElementById('f-cost').value  = p.cost     ?? '';
-    document.getElementById('f-price').value = p.price    ?? '';
-    document.getElementById('f-qty').value   = p.qty      ?? '';
-    document.getElementById('f-low').value   = p.lowStock ?? '';
-  }
+  document.getElementById('f-name').value  = p?.name     ?? '';
+  document.getElementById('f-cost').value  = p?.cost     ?? '';
+  document.getElementById('f-price').value = p?.price    ?? '';
+  document.getElementById('f-qty').value   = p?.qty      ?? '';
+  document.getElementById('f-low').value   = p?.lowStock ?? '';
   document.getElementById('product-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('f-name').focus(), 50);
+  setTimeout(() => document.getElementById('f-name').focus(), 100);
 }
-
-function closeProductModal() {
-  document.getElementById('product-modal').classList.add('hidden');
-  _editProdId = null;
-}
+function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); _editProdId = null; }
 document.getElementById('product-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeProductModal(); });
 
 function saveProduct() {
@@ -529,9 +625,7 @@ function saveProduct() {
   const price    = parseFloat(document.getElementById('f-price').value);
   const qty      = parseInt(document.getElementById('f-qty').value, 10);
   const lowStock = parseInt(document.getElementById('f-low').value, 10) || 0;
-  if (!name || isNaN(cost) || isNaN(price) || isNaN(qty)) {
-    toast('กรุณากรอกข้อมูลที่จำเป็น (*)', 'bg-red-500'); return;
-  }
+  if (!name || isNaN(cost) || isNaN(price) || isNaN(qty)) { toast('กรุณากรอกข้อมูลที่จำเป็น (*)', 'bg-red-500'); return; }
   const products = db.products();
   if (_editProdId) {
     const i = products.findIndex(p => p.id === _editProdId);
@@ -562,27 +656,53 @@ let _editCustId = null;
 function renderCustomers() {
   const customers = db.customers();
   const orders    = db.orders();
-  const tbody     = document.getElementById('cust-tbody');
+
   if (!customers.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีลูกค้า</td></tr>`;
+    document.getElementById('cust-tbody-desktop').innerHTML =
+      `<tr><td colspan="6" class="text-center py-10 text-slate-400">ยังไม่มีลูกค้า</td></tr>`;
+    document.getElementById('cust-cards-mobile').innerHTML =
+      `<p class="text-center py-10 text-slate-400">ยังไม่มีลูกค้า</p>`;
     return;
   }
-  tbody.innerHTML = customers.map(c => {
+
+  const rows = customers.map(c => {
     const co    = orders.filter(o => o.customerId === c.id);
     const spent = co.reduce((s, o) => s + o.total, 0);
-    return `
-      <tr class="border-t hover:bg-slate-50">
-        <td class="px-4 py-3 font-medium">${c.name}</td>
-        <td class="px-4 py-3 text-slate-600">${c.phone || '—'}</td>
-        <td class="px-4 py-3 text-slate-500 max-w-[160px] truncate">${c.note || '—'}</td>
-        <td class="px-4 py-3 text-right">${co.length}</td>
-        <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(spent)}</td>
-        <td class="px-4 py-3 text-right space-x-3">
-          <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">แก้ไข</button>
-          <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 hover:text-red-600 font-medium">ลบ</button>
-        </td>
-      </tr>`;
-  }).join('');
+    return { c, co: co.length, spent };
+  });
+
+  // Desktop table
+  document.getElementById('cust-tbody-desktop').innerHTML = rows.map(({ c, co, spent }) => `
+    <tr class="border-t hover:bg-slate-50">
+      <td class="px-4 py-3 font-medium">${c.name}</td>
+      <td class="px-4 py-3 text-slate-600">${c.phone || '—'}</td>
+      <td class="px-4 py-3 text-slate-500 max-w-[160px] truncate">${c.note || '—'}</td>
+      <td class="px-4 py-3 text-right">${co}</td>
+      <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(spent)}</td>
+      <td class="px-4 py-3 text-right space-x-3">
+        <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 hover:text-indigo-700 font-medium">แก้ไข</button>
+        <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 hover:text-red-600 font-medium">ลบ</button>
+      </td>
+    </tr>`).join('');
+
+  // Mobile cards
+  document.getElementById('cust-cards-mobile').innerHTML = rows.map(({ c, co, spent }) => `
+    <div class="bg-white rounded-2xl shadow border border-transparent overflow-hidden">
+      <div class="px-4 py-3 flex items-center justify-between border-b border-slate-100">
+        <div>
+          <p class="font-semibold">${c.name}</p>
+          <p class="text-xs text-slate-500">${c.phone || ''}${c.note ? ' · ' + c.note : ''}</p>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="openCustomerModal('${c.id}')" class="text-indigo-500 font-medium text-sm">แก้ไข</button>
+          <button onclick="deleteCustomer('${c.id}')"    class="text-red-400 font-medium text-sm">ลบ</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 divide-x divide-slate-100 text-center">
+        <div class="py-2.5"><p class="text-xs text-slate-400 mb-0.5">ใบสั่งซื้อ</p><p class="font-semibold">${co} ใบ</p></div>
+        <div class="py-2.5"><p class="text-xs text-slate-400 mb-0.5">ยอดรวม</p><p class="font-semibold text-indigo-600">${fmt(spent)}</p></div>
+      </div>
+    </div>`).join('');
 }
 
 function openCustomerModal(id = null) {
@@ -593,13 +713,9 @@ function openCustomerModal(id = null) {
   document.getElementById('cf-phone').value = c?.phone ?? '';
   document.getElementById('cf-note').value  = c?.note  ?? '';
   document.getElementById('customer-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('cf-name').focus(), 50);
+  setTimeout(() => document.getElementById('cf-name').focus(), 100);
 }
-
-function closeCustomerModal() {
-  document.getElementById('customer-modal').classList.add('hidden');
-  _editCustId = null;
-}
+function closeCustomerModal() { document.getElementById('customer-modal').classList.add('hidden'); _editCustId = null; }
 document.getElementById('customer-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCustomerModal(); });
 
 function saveCustomer() {
@@ -632,13 +748,42 @@ function deleteCustomer(id) {
 // ═══════════════════════════════════════════════════════════
 // ใบสั่งซื้อ
 // ═══════════════════════════════════════════════════════════
-let orderItems = []; // [{productId, name, qty, price, cost}]
+let orderItems = [];
+let _mobView   = 'products';
+
+// Mobile tab switcher Products / Cart
+function setMobView(view) {
+  _mobView = view;
+  const pv = document.getElementById('mob-products-view');
+  const cv = document.getElementById('mob-cart-view');
+  const pt = document.getElementById('mob-products-tab');
+  const ct = document.getElementById('mob-cart-tab');
+  if (isMob()) {
+    pv.style.display = view === 'products' ? '' : 'none';
+    cv.style.display = view === 'cart'     ? '' : 'none';
+  }
+  const activeClass    = 'bg-indigo-600 text-white';
+  const inactiveClass  = 'text-slate-600 bg-white';
+  pt.className = `flex-1 py-3 text-sm font-semibold transition ${view === 'products' ? activeClass : inactiveClass}`;
+  ct.className = `flex-1 py-3 text-sm font-semibold transition relative ${view === 'cart' ? activeClass : inactiveClass}`;
+}
+
+// แสดงทั้งสองฝั่งบน desktop เสมอ
+function syncLayout() {
+  if (!isMob()) {
+    document.getElementById('mob-products-view').style.display = '';
+    document.getElementById('mob-cart-view').style.display = '';
+  } else {
+    setMobView(_mobView);
+  }
+}
+window.addEventListener('resize', syncLayout);
 
 function populateCustomerSelect() {
   const sel = document.getElementById('order-customer');
   const cur = sel.value;
   sel.innerHTML = '<option value="">— ลูกค้าทั่วไป —</option>' +
-    db.customers().map(c => `<option value="${c.id}" ${cur === c.id ? 'selected':''}>${c.name}</option>`).join('');
+    db.customers().map(c => `<option value="${c.id}" ${cur===c.id?'selected':''}>${c.name}</option>`).join('');
 }
 
 function renderGrid(filter = '') {
@@ -646,17 +791,16 @@ function renderGrid(filter = '') {
   const products = db.products().filter(p => p.name.toLowerCase().includes(q));
   const grid     = document.getElementById('product-grid');
   if (!products.length) {
-    grid.innerHTML = `<p class="col-span-3 text-center py-12 text-slate-400">ไม่พบสินค้า</p>`;
-    return;
+    grid.innerHTML = `<p class="col-span-3 text-center py-12 text-slate-400">ไม่พบสินค้า</p>`; return;
   }
   grid.innerHTML = products.map(p => {
     const oos = p.qty === 0;
     return `
       <button onclick="addItem('${p.id}')"
-        class="bg-white rounded-2xl shadow hover:shadow-md hover:-translate-y-0.5 transition-all p-4 text-left border-2
-               ${oos ? 'opacity-40 cursor-not-allowed border-transparent' : 'border-transparent hover:border-indigo-300'}"
+        class="bg-white rounded-2xl shadow hover:shadow-md active:scale-95 transition-all p-4 text-left border-2
+               ${oos ? 'opacity-40 cursor-not-allowed border-transparent' : 'border-transparent hover:border-indigo-300 active:border-indigo-500'}"
         ${oos ? 'disabled' : ''}>
-        <p class="font-semibold leading-tight mb-1 line-clamp-2">${p.name}</p>
+        <p class="font-semibold leading-tight mb-2 text-sm line-clamp-2">${p.name}</p>
         <p class="text-indigo-600 font-bold">${fmt(p.price)}</p>
         <p class="text-xs text-slate-400 mt-1">คงเหลือ: ${p.qty}</p>
       </button>`;
@@ -674,6 +818,9 @@ function addItem(productId) {
     orderItems.push({ productId, name: p.name, qty: 1, price: p.price, cost: p.cost });
   }
   renderOrderForm();
+  updateMobBadge();
+  // Mobile: auto-switch to cart after adding first item
+  if (isMob() && orderItems.length === 1) setMobView('cart');
 }
 
 function setItemQty(productId, delta) {
@@ -681,36 +828,36 @@ function setItemQty(productId, delta) {
   const item = orderItems.find(i => i.productId === productId);
   if (!item) return;
   item.qty += delta;
-  if (item.qty <= 0) {
-    orderItems = orderItems.filter(i => i.productId !== productId);
-  } else if (p && item.qty > p.qty) {
-    item.qty = p.qty;
-    toast('สินค้าเต็มจำนวนแล้ว', 'bg-amber-500');
-  }
+  if (item.qty <= 0) { orderItems = orderItems.filter(i => i.productId !== productId); }
+  else if (p && item.qty > p.qty) { item.qty = p.qty; toast('สินค้าเต็มจำนวนแล้ว', 'bg-amber-500'); }
   renderOrderForm();
+  updateMobBadge();
+}
+
+function updateMobBadge() {
+  const total = orderItems.reduce((s, i) => s + i.qty, 0);
+  const badge = document.getElementById('mob-badge');
+  badge.textContent = total;
+  badge.classList.toggle('hidden', total === 0);
 }
 
 function renderOrderForm() {
   const el       = document.getElementById('order-items');
   const subtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0);
-  const discount = parseFloat(document.getElementById('discount-input').value) || 0;
-  const total    = Math.max(0, subtotal - discount);
-
   el.innerHTML = orderItems.length
     ? orderItems.map(i => `
         <div class="flex items-center gap-2">
           <span class="flex-1 leading-tight text-xs">${i.name}</span>
           <div class="flex items-center gap-1 shrink-0">
             <button onclick="setItemQty('${i.productId}',-1)"
-              class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-base">−</button>
+              class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 flex items-center justify-center font-bold text-base">−</button>
             <span class="w-7 text-center font-semibold">${i.qty}</span>
             <button onclick="setItemQty('${i.productId}',1)"
-              class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-base">+</button>
+              class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 active:bg-slate-300 flex items-center justify-center font-bold text-base">+</button>
           </div>
           <span class="font-semibold w-16 text-right shrink-0 text-xs">${fmt(i.price * i.qty)}</span>
         </div>`).join('')
-    : `<p class="text-slate-400 text-xs text-center mt-6">เลือกสินค้าจากรายการด้านซ้าย</p>`;
-
+    : `<p class="text-slate-400 text-xs text-center mt-4">เลือกสินค้าจากรายการ</p>`;
   renderOrderSummary();
 }
 
@@ -718,9 +865,9 @@ function renderOrderSummary() {
   const subtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0);
   const discount = parseFloat(document.getElementById('discount-input').value) || 0;
   const total    = Math.max(0, subtotal - discount);
-  document.getElementById('subtotal-display').textContent  = fmt(subtotal);
-  document.getElementById('discount-display').textContent  = '-' + fmt(discount);
-  document.getElementById('total-display').textContent     = fmt(total);
+  document.getElementById('subtotal-display').textContent = fmt(subtotal);
+  document.getElementById('discount-display').textContent = '-' + fmt(discount);
+  document.getElementById('total-display').textContent    = fmt(total);
 }
 
 function clearOrder() {
@@ -729,11 +876,11 @@ function clearOrder() {
   document.getElementById('order-note').value     = '';
   document.getElementById('order-customer').value = '';
   renderOrderForm();
+  updateMobBadge();
 }
 
 function createOrder() {
   if (!orderItems.length) { toast('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ', 'bg-amber-500'); return; }
-
   const custId   = document.getElementById('order-customer').value;
   const cust     = custId ? db.customers().find(c => c.id === custId) : null;
   const discount = parseFloat(document.getElementById('discount-input').value) || 0;
@@ -741,20 +888,18 @@ function createOrder() {
   const total    = Math.max(0, subtotal - discount);
   const note     = document.getElementById('order-note').value.trim();
   const now      = new Date();
-
-  const order = {
-    id:           uid(),
-    orderNo:      db.nextOrderNo(),
-    date:         now.toISOString().slice(0, 10),
-    time:         now.toTimeString().slice(0, 5),
-    customerId:   custId   || null,
-    customerName: cust?.name  || 'ลูกค้าทั่วไป',
-    customerPhone:cust?.phone || '',
-    customerNote: cust?.note  || '',
-    items:        orderItems.map(i => ({ ...i })),
+  const order    = {
+    id: uid(),
+    orderNo:       db.nextOrderNo(),
+    date:          now.toISOString().slice(0, 10),
+    time:          now.toTimeString().slice(0, 5),
+    customerId:    custId   || null,
+    customerName:  cust?.name  || 'ลูกค้าทั่วไป',
+    customerPhone: cust?.phone || '',
+    customerNote:  cust?.note  || '',
+    items:         orderItems.map(i => ({ ...i })),
     subtotal, discount, total, note,
   };
-
   // หักสต็อก
   const products = db.products();
   order.items.forEach(item => {
@@ -771,21 +916,20 @@ function createOrder() {
   toast('สร้างใบสั่งซื้อเรียบร้อย', 'bg-green-600');
 }
 
-// ── ประวัติใบสั่งซื้อ (แสดงใต้ตารางสินค้า) ──────────────
+// ── ประวัติใบสั่งซื้อ ─────────────────────────────────────
 function renderOrderHistory() {
   const orders = [...db.orders()].reverse().slice(0, 10);
   const el     = document.getElementById('order-history');
   if (!orders.length) {
-    el.innerHTML = `<p class="text-slate-400 text-xs text-center py-4">ยังไม่มีใบสั่งซื้อ</p>`;
-    return;
+    el.innerHTML = `<p class="text-slate-400 text-xs text-center py-4">ยังไม่มีใบสั่งซื้อ</p>`; return;
   }
   el.innerHTML = orders.map(o => `
-    <div class="bg-white rounded-xl shadow-sm border hover:border-indigo-300 transition p-3 flex items-center gap-3 cursor-pointer"
-         onclick="showOrderPreview(${JSON.stringify(o).replace(/"/g,'&quot;')})">
+    <div class="bg-white rounded-xl shadow-sm border hover:border-indigo-300 active:bg-slate-50 transition p-3 flex items-center gap-3 cursor-pointer"
+         onclick='showOrderPreview(${JSON.stringify(o)})'>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-0.5">
           <span class="font-semibold text-indigo-600 text-xs">${o.orderNo}</span>
-          <span class="text-slate-400 text-xs">${o.date} ${o.time} น.</span>
+          <span class="text-slate-400 text-xs">${o.date}</span>
         </div>
         <p class="text-slate-700 truncate text-xs">${o.customerName} — ${o.items.map(i=>i.name).join(', ')}</p>
       </div>
@@ -796,7 +940,7 @@ function renderOrderHistory() {
     </div>`).join('');
 }
 
-// ── แสดง preview ใบสั่งซื้อ ──────────────────────────────
+// ── Preview ───────────────────────────────────────────────
 let _currentOrder = null;
 
 function showOrderPreview(order) {
@@ -808,36 +952,24 @@ function showOrderPreview(order) {
   document.getElementById('pv-cust-note').textContent = order.customerNote  || '';
   document.getElementById('pv-subtotal').textContent  = fmt(order.subtotal);
   document.getElementById('pv-total').textContent     = fmt(order.total);
-
-  // ส่วนลด
-  const discRow = document.getElementById('pv-discount-row');
-  discRow.classList.toggle('hidden', !order.discount);
-  document.getElementById('pv-discount').textContent = '-' + fmt(order.discount);
-
-  // หมายเหตุ
-  const noteRow = document.getElementById('pv-note-row');
-  noteRow.classList.toggle('hidden', !order.note);
-  document.getElementById('pv-note').textContent = order.note || '';
-
-  // รายการสินค้า
+  document.getElementById('pv-discount-row').classList.toggle('hidden', !order.discount);
+  document.getElementById('pv-discount').textContent  = '-' + fmt(order.discount);
+  document.getElementById('pv-note-row').classList.toggle('hidden', !order.note);
+  document.getElementById('pv-note').textContent      = order.note || '';
   document.getElementById('pv-items').innerHTML = order.items.map(i => `
     <tr>
       <td class="py-2 pr-2">${i.name}</td>
       <td class="py-2 text-center text-slate-500">${i.qty}</td>
       <td class="py-2 text-right text-slate-500">${fmt(i.price)}</td>
-      <td class="py-2 text-right font-medium">${fmt(i.price * i.qty)}</td>
+      <td class="py-2 text-right font-medium">${fmt(i.price*i.qty)}</td>
     </tr>`).join('');
-
   document.getElementById('order-modal').classList.remove('hidden');
 }
 
-function closeOrderModal() {
-  document.getElementById('order-modal').classList.add('hidden');
-  _currentOrder = null;
-}
+function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); _currentOrder = null; }
 document.getElementById('order-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeOrderModal(); });
 
-// ── สร้าง PDF ─────────────────────────────────────────────
+// ── PDF ───────────────────────────────────────────────────
 function downloadPDF() {
   if (!_currentOrder) return;
   const o = _currentOrder;
@@ -848,13 +980,11 @@ function downloadPDF() {
       <td style="padding:8px 4px;border-bottom:1px solid #f1f5f9;text-align:right;color:#64748b">${fmt(i.price)}</td>
       <td style="padding:8px 4px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600">${fmt(i.price*i.qty)}</td>
     </tr>`).join('');
-
   const discountRow = o.discount > 0 ? `
     <tr>
       <td colspan="3" style="text-align:right;padding:4px 4px;color:#64748b">ส่วนลด</td>
       <td style="text-align:right;padding:4px 4px;color:#ef4444">-${fmt(o.discount)}</td>
     </tr>` : '';
-
   const noteSection = o.note ? `
     <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0">
       <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:4px">หมายเหตุ</p>
@@ -862,84 +992,58 @@ function downloadPDF() {
     </div>` : '';
 
   const html = `<!DOCTYPE html>
-<html lang="th">
-<head>
+<html lang="th"><head>
   <meta charset="UTF-8"/>
   <title>ใบสั่งซื้อ ${o.orderNo}</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:'Sarabun',sans-serif; font-size:14px; color:#1e293b;
-           padding:20mm 20mm; max-width:210mm; margin:0 auto; }
-    @page { size:A4; margin:15mm; }
-    @media print { body { padding:0; } }
-    table { width:100%; border-collapse:collapse; }
-    th { font-size:11px; text-transform:uppercase; color:#94a3b8; font-weight:600;
-         padding:8px 4px; border-bottom:2px solid #e2e8f0; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Sarabun',sans-serif;font-size:14px;color:#1e293b;padding:20mm;max-width:210mm;margin:0 auto}
+    @page{size:A4;margin:15mm}
+    @media print{body{padding:0}}
+    table{width:100%;border-collapse:collapse}
+    th{font-size:11px;text-transform:uppercase;color:#94a3b8;font-weight:600;padding:8px 4px;border-bottom:2px solid #e2e8f0}
   </style>
-</head>
-<body>
-  <!-- Header -->
+</head><body>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">
     <div>
       <p style="font-size:24px;font-weight:700;color:#4f46e5">ร้านของฉัน</p>
       <p style="font-size:12px;color:#94a3b8;margin-top:2px">ใบสั่งซื้อ / Purchase Order</p>
     </div>
     <div style="text-align:right">
-      <p style="font-size:18px;font-weight:700;color:#1e293b">${o.orderNo}</p>
+      <p style="font-size:18px;font-weight:700">${o.orderNo}</p>
       <p style="font-size:12px;color:#64748b;margin-top:2px">วันที่ ${o.date} เวลา ${o.time} น.</p>
     </div>
   </div>
-
-  <!-- ลูกค้า -->
   <div style="background:#f8fafc;border-radius:8px;padding:14px 16px;margin-bottom:24px">
-    <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:6px">ลูกค้า (Bill To)</p>
+    <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:6px">ลูกค้า</p>
     <p style="font-weight:700;font-size:15px">${o.customerName}</p>
     ${o.customerPhone ? `<p style="color:#64748b;margin-top:2px">${o.customerPhone}</p>` : ''}
     ${o.customerNote  ? `<p style="color:#94a3b8;font-size:12px;margin-top:2px">${o.customerNote}</p>` : ''}
   </div>
-
-  <!-- รายการ -->
   <table>
-    <thead>
-      <tr>
-        <th style="text-align:left">รายการสินค้า</th>
-        <th style="text-align:center;width:60px">จำนวน</th>
-        <th style="text-align:right;width:100px">ราคา/หน่วย</th>
-        <th style="text-align:right;width:100px">รวม</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th style="text-align:left">รายการสินค้า</th>
+      <th style="text-align:center;width:60px">จำนวน</th>
+      <th style="text-align:right;width:100px">ราคา/หน่วย</th>
+      <th style="text-align:right;width:100px">รวม</th>
+    </tr></thead>
     <tbody>${itemsHTML}</tbody>
     <tfoot>
-      <tr>
-        <td colspan="3" style="text-align:right;padding:8px 4px;color:#64748b">ยอดสินค้า</td>
-        <td style="text-align:right;padding:8px 4px">${fmt(o.subtotal)}</td>
-      </tr>
+      <tr><td colspan="3" style="text-align:right;padding:8px 4px;color:#64748b">ยอดสินค้า</td>
+          <td style="text-align:right;padding:8px 4px">${fmt(o.subtotal)}</td></tr>
       ${discountRow}
-      <tr>
-        <td colspan="3" style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;border-top:2px solid #e2e8f0">ยอดสุทธิ</td>
-        <td style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;color:#4f46e5;border-top:2px solid #e2e8f0">${fmt(o.total)}</td>
-      </tr>
+      <tr><td colspan="3" style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;border-top:2px solid #e2e8f0">ยอดสุทธิ</td>
+          <td style="text-align:right;padding:8px 4px;font-weight:700;font-size:15px;color:#4f46e5;border-top:2px solid #e2e8f0">${fmt(o.total)}</td></tr>
     </tfoot>
   </table>
-
   ${noteSection}
-
-  <!-- ลายเซ็น -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:48px;text-align:center">
-    <div>
-      <div style="border-bottom:1px dashed #cbd5e1;margin-bottom:6px;height:40px"></div>
-      <p style="font-size:12px;color:#94a3b8">ผู้สั่งซื้อ</p>
-    </div>
-    <div>
-      <div style="border-bottom:1px dashed #cbd5e1;margin-bottom:6px;height:40px"></div>
-      <p style="font-size:12px;color:#94a3b8">ผู้ขาย / ผู้อนุมัติ</p>
-    </div>
+    <div><div style="border-bottom:1px dashed #cbd5e1;margin-bottom:6px;height:40px"></div><p style="font-size:12px;color:#94a3b8">ผู้สั่งซื้อ</p></div>
+    <div><div style="border-bottom:1px dashed #cbd5e1;margin-bottom:6px;height:40px"></div><p style="font-size:12px;color:#94a3b8">ผู้ขาย / ผู้อนุมัติ</p></div>
   </div>
-</body>
-</html>`;
+</body></html>`;
 
-  // เปิดหน้าต่างใหม่ → print dialog → Save as PDF
   const win = window.open('', '_blank', 'width=800,height=900');
   win.document.write(html);
   win.document.close();
@@ -950,7 +1054,7 @@ function downloadPDF() {
 document.getElementById('pos-search').addEventListener('input', e => renderGrid(e.target.value));
 
 // ═══════════════════════════════════════════════════════════
-// รายงาน (ใช้ข้อมูลจาก orders)
+// รายงาน
 // ═══════════════════════════════════════════════════════════
 let _reportMode  = 'daily';
 let _monthSubTab = 'cust';
@@ -979,16 +1083,13 @@ function renderDailyReport() {
   const input    = document.getElementById('report-date');
   const date     = input.value || today();
   if (!input.value) input.value = date;
-
   const dayOrders = db.orders().filter(o => o.date === date);
   const revenue   = dayOrders.reduce((s, o) => s + o.total, 0);
   const cost      = dayOrders.reduce((s, o) =>
     s + o.items.reduce((ss, i) => ss + i.cost * i.qty, 0), 0);
-
   document.getElementById('stat-revenue').textContent = fmt(revenue);
   document.getElementById('stat-cost').textContent    = fmt(cost);
   document.getElementById('stat-profit').textContent  = fmt(revenue - cost);
-
   const map = {};
   dayOrders.forEach(o => o.items.forEach(i => {
     if (!map[i.name]) map[i.name] = { qty: 0, revenue: 0 };
@@ -996,29 +1097,27 @@ function renderDailyReport() {
     map[i.name].revenue += i.price * i.qty;
   }));
   const top = Object.entries(map).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
-
   document.getElementById('top-sellers').innerHTML = top.length
     ? top.map(([name, d], i) => `
-        <div class="flex items-center gap-3 py-1">
-          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">${i + 1}</span>
-          <span class="flex-1">${name}</span>
+        <div class="flex items-center gap-3 py-1.5">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">${i+1}</span>
+          <span class="flex-1 text-sm">${name}</span>
           <span class="text-slate-400 text-xs">สั่ง ${d.qty} ชิ้น</span>
-          <span class="font-semibold">${fmt(d.revenue)}</span>
+          <span class="font-semibold text-sm">${fmt(d.revenue)}</span>
         </div>`).join('')
     : `<p class="text-slate-400 text-xs text-center py-6">ไม่มีรายการในวันนี้</p>`;
-
   document.getElementById('sales-log').innerHTML = dayOrders.length
     ? [...dayOrders].reverse().map(o => `
-        <div class="border rounded-xl p-3 cursor-pointer hover:bg-slate-50"
-             onclick="showOrderPreview(${JSON.stringify(o).replace(/"/g,'&quot;')})">
-          <div class="flex justify-between font-semibold mb-1">
-            <span class="text-indigo-500 text-xs">${o.orderNo}</span>
-            <span class="text-slate-400 text-xs font-normal">${o.time} น.</span>
-            <span>${fmt(o.total)}</span>
+        <div class="border rounded-xl p-3 cursor-pointer hover:bg-slate-50 active:bg-slate-100"
+             onclick='showOrderPreview(${JSON.stringify(o)})'>
+          <div class="flex justify-between mb-1">
+            <span class="text-indigo-500 text-xs font-medium">${o.orderNo}</span>
+            <span class="text-slate-400 text-xs">${o.time} น.</span>
+            <span class="font-semibold text-sm">${fmt(o.total)}</span>
           </div>
           <p class="text-xs text-slate-500">${o.customerName}</p>
-          <div class="text-slate-400 text-xs mt-1 space-y-0.5">
-            ${o.items.map(i => `<div>${i.name} × ${i.qty} = ${fmt(i.price * i.qty)}</div>`).join('')}
+          <div class="text-slate-400 text-xs mt-1">
+            ${o.items.map(i => `${i.name} × ${i.qty}`).join(' · ')}
           </div>
         </div>`).join('')
     : `<p class="text-slate-400 text-xs text-center py-6">ไม่มีรายการในวันนี้</p>`;
@@ -1028,18 +1127,14 @@ function renderMonthlyReport() {
   const input = document.getElementById('report-month');
   const month = input.value || ym();
   if (!input.value) input.value = month;
-
   const mOrders = db.orders().filter(o => o.date.startsWith(month));
   const revenue = mOrders.reduce((s, o) => s + o.total, 0);
   const cost    = mOrders.reduce((s, o) =>
     s + o.items.reduce((ss, i) => ss + i.cost * i.qty, 0), 0);
-
   document.getElementById('m-revenue').textContent = fmt(revenue);
   document.getElementById('m-cost').textContent    = fmt(cost);
   document.getElementById('m-profit').textContent  = fmt(revenue - cost);
   document.getElementById('m-txn').textContent     = mOrders.length + ' ใบ';
-
-  // รวมตามลูกค้า
   const custMap = {};
   mOrders.forEach(o => {
     const key = o.customerId || '__walkin__';
@@ -1049,19 +1144,16 @@ function renderMonthlyReport() {
     custMap[key].profit  += o.total - o.items.reduce((ss, i) => ss + i.cost * i.qty, 0);
   });
   const custRows = Object.values(custMap).sort((a, b) => b.revenue - a.revenue);
-
   document.getElementById('m-cust-tbody').innerHTML = custRows.length
     ? custRows.map((c, i) => `
         <tr class="border-t hover:bg-slate-50">
-          <td class="px-4 py-3 text-slate-400">${i + 1}</td>
+          <td class="px-4 py-3 text-slate-400">${i+1}</td>
           <td class="px-4 py-3 font-medium">${c.name}</td>
           <td class="px-4 py-3 text-right">${c.orders}</td>
           <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(c.revenue)}</td>
           <td class="px-4 py-3 text-right text-green-600">${fmt(c.profit)}</td>
         </tr>`).join('')
     : `<tr><td colspan="5" class="text-center py-8 text-slate-400">ไม่มีรายการในเดือนนี้</td></tr>`;
-
-  // รวมตามสินค้า
   const prodMap = {};
   mOrders.forEach(o => o.items.forEach(i => {
     if (!prodMap[i.name]) prodMap[i.name] = { qty: 0, revenue: 0, cost: 0 };
@@ -1070,11 +1162,10 @@ function renderMonthlyReport() {
     prodMap[i.name].cost    += i.cost  * i.qty;
   }));
   const prodRows = Object.entries(prodMap).sort((a, b) => b[1].revenue - a[1].revenue);
-
   document.getElementById('m-prod-tbody').innerHTML = prodRows.length
     ? prodRows.map(([name, d], i) => `
         <tr class="border-t hover:bg-slate-50">
-          <td class="px-4 py-3 text-slate-400">${i + 1}</td>
+          <td class="px-4 py-3 text-slate-400">${i+1}</td>
           <td class="px-4 py-3 font-medium">${name}</td>
           <td class="px-4 py-3 text-right">${d.qty}</td>
           <td class="px-4 py-3 text-right font-semibold text-indigo-600">${fmt(d.revenue)}</td>
@@ -1088,6 +1179,7 @@ function renderMonthlyReport() {
 renderGrid();
 populateCustomerSelect();
 renderOrderHistory();
+syncLayout();
 document.getElementById('report-date').value  = today();
 document.getElementById('report-month').value = ym();
 </script>
