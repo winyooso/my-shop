@@ -137,9 +137,13 @@
     </div>
   </div>
 
-  <!-- Admin link (subtle footer) -->
-  <div class="fixed bottom-0 inset-x-0 flex justify-end pointer-events-none safe-bottom pb-1 pr-3">
-    <button onclick="showAdminLogin()" class="pointer-events-auto text-xs text-slate-300 hover:text-slate-400 transition px-2 py-1">
+  <!-- Admin link -->
+  <div class="fixed bottom-4 right-4 safe-bottom">
+    <button onclick="showAdminLogin()" title="เข้าระบบ Admin"
+      class="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 text-xs font-medium px-3 py-2 rounded-full shadow-sm transition">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
       Admin
     </button>
   </div>
@@ -814,6 +818,9 @@ async function createFirstUser() {
 }
 
 init();
+
+// URL hash: เปิด yoursite.com/#admin เพื่อเข้าหน้า admin โดยตรง
+if (location.hash === '#admin') showAdminLogin();
 </script>
 </body>
 </html>
