@@ -971,7 +971,7 @@ async function createOrder() {
   batch.set(fdb.collection('orders').doc(order.id), order);
   order.items.forEach(item => {
     const ref = fdb.collection('products').doc(item.productId);
-    batch.update(ref, { qty: firebase.firestore.FieldValue.increment(-item.qty) });
+    batch.set(ref, { qty: firebase.firestore.FieldValue.increment(-item.qty) }, { merge: true });
   });
   await batch.commit();
   showOrderPreview(order);
@@ -1058,8 +1058,8 @@ async function cancelCurrentOrder() {
     const batch = fdb.batch();
     // คืน stock
     order.items.forEach(item => {
-      batch.update(fdb.collection('products').doc(item.productId),
-        { qty: firebase.firestore.FieldValue.increment(item.qty) });
+      batch.set(fdb.collection('products').doc(item.productId),
+        { qty: firebase.firestore.FieldValue.increment(item.qty) }, { merge: true });
     });
     // อัปเดต order
     batch.update(fdb.collection('orders').doc(order.id), {
