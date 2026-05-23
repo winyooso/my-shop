@@ -82,6 +82,49 @@
     </div>
   </aside>
 
+  <!-- Product detail modal (bottom sheet) -->
+  <div id="pd-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center" onclick="if(event.target===this)closePdModal()">
+    <div class="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col" style="max-height:92vh">
+      <div class="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+        <h3 id="pd-name" class="font-bold text-base flex-1 pr-3 line-clamp-2"></h3>
+        <button onclick="closePdModal()" class="text-slate-400 hover:text-slate-700 p-1 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- รูปหลัก -->
+      <div id="pd-img-wrap" class="shrink-0 bg-slate-100 mx-4 rounded-2xl overflow-hidden">
+        <img id="pd-img" src="" alt="" class="w-full aspect-square object-cover hidden" onerror="this.classList.add('hidden');document.getElementById('pd-img-ph').classList.remove('hidden')" />
+        <div id="pd-img-ph" class="w-full aspect-square flex items-center justify-center text-slate-300">
+          <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+      </div>
+      <!-- เนื้อหา -->
+      <div class="overflow-y-auto flex-1 px-4 py-3 space-y-3">
+        <p id="pd-price" class="font-bold text-2xl text-indigo-600"></p>
+        <p id="pd-desc" class="text-slate-500 text-sm hidden"></p>
+        <!-- ตัวเลือก -->
+        <div id="pd-variants-section" class="hidden">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">ตัวเลือกสินค้า</p>
+          <div id="pd-variants" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+      <!-- จำนวน + เพิ่มในตะกร้า -->
+      <div class="shrink-0 border-t px-4 py-4 space-y-3 safe-bottom bg-white rounded-b-3xl">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-slate-500 font-medium">จำนวน</span>
+          <div class="flex items-center gap-3">
+            <button onclick="setPdQty(-1)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-xl">−</button>
+            <span id="pd-qty-display" class="w-8 text-center font-bold text-lg">1</span>
+            <button onclick="setPdQty(1)"  class="w-10 h-10 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-xl">+</button>
+          </div>
+        </div>
+        <button onclick="addToCartFromDetail()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-2xl transition text-base">
+          เพิ่มในตะกร้า
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Checkout modal -->
   <div id="checkout-modal" class="modal-wrap hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
     <div class="modal-inner bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
@@ -289,6 +332,14 @@
         <input id="f-available" type="checkbox" checked class="w-4 h-4 accent-indigo-600" />
         <span class="text-sm text-slate-600">แสดงในร้าน (พร้อมขาย)</span>
       </label>
+      <!-- ตัวเลือกสินค้า (variants) -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-medium text-slate-500">ตัวเลือกสินค้า <span class="text-slate-300">(เช่น สี, ขนาด)</span></label>
+          <button type="button" onclick="addVariantRow()" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold">+ เพิ่มตัวเลือก</button>
+        </div>
+        <div id="variant-rows" class="space-y-2"></div>
+      </div>
     </div>
     <div class="flex gap-2 mt-5">
       <button onclick="closeProductModal()" class="flex-1 border rounded-xl py-2.5 font-medium text-slate-600 hover:bg-slate-50 transition">ยกเลิก</button>
@@ -466,23 +517,23 @@ function renderStore(filter='') {
     grid.innerHTML = `<p class="col-span-4 text-center py-16 text-slate-400 text-sm">ยังไม่มีสินค้า</p>`; return;
   }
   grid.innerHTML = list.map(p => {
-    const inCart = cartItems.find(i=>i.productId===p.id);
+    const cartQty = cartItems.filter(i=>i.productId===p.id).reduce((s,i)=>s+i.qty,0);
     const imgEl = p.imageUrl
       ? `<img src="${p.imageUrl}" alt="" class="prod-img rounded-t-2xl" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         + `<div class="prod-placeholder rounded-t-2xl" style="display:none">${svgImg()}</div>`
       : `<div class="prod-placeholder rounded-t-2xl">${svgImg()}</div>`;
-    const btnEl = inCart
-      ? `<div class="flex items-center gap-1">
-           <button onclick="setQty('${p.id}',-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-lg">−</button>
-           <span class="flex-1 text-center font-bold">${inCart.qty}</span>
-           <button onclick="setQty('${p.id}',1)"  class="w-9 h-9 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-lg">+</button>
-         </div>`
-      : `<button onclick="addToCart('${p.id}')"
+    const btnEl = cartQty
+      ? `<button onclick="openProductDetail('${p.id}')"
+           class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-1">
+           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+           ในตะกร้า (${cartQty})
+         </button>`
+      : `<button onclick="openProductDetail('${p.id}')"
            class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold py-2.5 rounded-xl transition">
-           + เพิ่ม
+           + เลือก
          </button>`;
     return `
-      <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition overflow-hidden flex flex-col">
+      <div class="bg-white rounded-2xl shadow-sm hover:shadow-md active:scale-[.98] transition-all overflow-hidden flex flex-col cursor-pointer" onclick="openProductDetail('${p.id}')">
         ${imgEl}
         <div class="p-3 flex flex-col flex-1 gap-1">
           <p class="font-semibold text-sm line-clamp-2 flex-1">${p.name}</p>
@@ -498,20 +549,14 @@ function svgImg() {
   return `<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
 }
 
-function addToCart(productId) {
-  const p = products.find(x=>x.id===productId); if (!p) return;
-  const item = cartItems.find(i=>i.productId===productId);
-  if (item) item.qty++;
-  else cartItems.push({productId, name:p.name, price:p.price, qty:1});
+function setQty(key, delta) {
+  const item = cartItems.find(i=>cartKey(i)===key); if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cartItems = cartItems.filter(i=>cartKey(i)!==key);
   syncCart();
 }
 
-function setQty(productId, delta) {
-  const item = cartItems.find(i=>i.productId===productId); if (!item) return;
-  item.qty += delta;
-  if (item.qty <= 0) cartItems = cartItems.filter(i=>i.productId!==productId);
-  syncCart();
-}
+const cartKey = i => i.productId + '|' + (i.variantId||'');
 
 function syncCart() {
   // badge
@@ -532,18 +577,93 @@ function renderCartPanel() {
   }
   el.innerHTML = cartItems.map(i=>`
     <div class="flex items-center gap-3">
+      ${i.imageUrl?`<img src="${i.imageUrl}" class="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-100" onerror="this.style.display='none'">`:''}
       <div class="flex-1 min-w-0">
         <p class="font-medium text-sm leading-snug truncate">${i.name}</p>
-        <p class="text-indigo-600 text-sm">${fmt(i.price)}</p>
+        ${i.variantName?`<p class="text-xs text-slate-400">${i.variantName}</p>`:''}
+        <p class="text-indigo-600 text-sm font-semibold">${fmt(i.price)}</p>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <button onclick="setQty('${i.productId}',-1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold">−</button>
+        <button onclick="setQty('${cartKey(i)}',-1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold">−</button>
         <span class="w-7 text-center font-semibold">${i.qty}</span>
-        <button onclick="setQty('${i.productId}',1)"  class="w-8 h-8 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold">+</button>
+        <button onclick="setQty('${cartKey(i)}',1)"  class="w-8 h-8 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 flex items-center justify-center font-bold">+</button>
       </div>
-      <span class="w-20 text-right font-semibold text-sm shrink-0">${fmt(i.price*i.qty)}</span>
+      <span class="w-16 text-right font-semibold text-sm shrink-0">${fmt(i.price*i.qty)}</span>
     </div>`).join('');
   document.getElementById('cart-total').textContent = fmt(cartItems.reduce((s,i)=>s+i.price*i.qty,0));
+}
+
+// ── Product Detail Modal ───────────────────────────────────
+let _pdProductId=null, _pdVariantId=null, _pdQty=1;
+
+function openProductDetail(productId) {
+  const p = products.find(x=>x.id===productId); if (!p) return;
+  _pdProductId = productId; _pdVariantId = null; _pdQty = 1;
+  document.getElementById('pd-name').textContent  = p.name;
+  document.getElementById('pd-price').textContent = fmt(p.price);
+  const descEl = document.getElementById('pd-desc');
+  if (p.description) { descEl.textContent=p.description; descEl.classList.remove('hidden'); }
+  else descEl.classList.add('hidden');
+  const vs = p.variants||[];
+  const vsSection = document.getElementById('pd-variants-section');
+  if (vs.length) {
+    vsSection.classList.remove('hidden');
+    selectPdVariant(vs[0].id, p);
+  } else {
+    vsSection.classList.add('hidden');
+    updatePdImg(p.imageUrl);
+    const ex = cartItems.find(i=>i.productId===productId&&!i.variantId);
+    _pdQty = ex ? ex.qty : 1;
+    document.getElementById('pd-qty-display').textContent = _pdQty;
+  }
+  document.getElementById('pd-modal').classList.remove('hidden');
+}
+
+function closePdModal() { document.getElementById('pd-modal').classList.add('hidden'); }
+
+function updatePdImg(url) {
+  const img=document.getElementById('pd-img'), ph=document.getElementById('pd-img-ph');
+  if (url) { img.src=url; img.classList.remove('hidden'); ph.classList.add('hidden'); }
+  else     { img.classList.add('hidden'); ph.classList.remove('hidden'); }
+}
+
+function selectPdVariant(variantId, prod) {
+  const p = prod || products.find(x=>x.id===_pdProductId); if (!p) return;
+  const v = (p.variants||[]).find(x=>x.id===variantId); if (!v) return;
+  _pdVariantId = variantId;
+  // render pills
+  document.getElementById('pd-variants').innerHTML = (p.variants||[]).map(vv=>`
+    <button onclick="selectPdVariant('${vv.id}')"
+      class="flex items-center gap-2 border-2 rounded-xl px-3 py-2 text-sm font-medium transition
+             ${vv.id===variantId?'border-indigo-500 bg-indigo-50 text-indigo-700':'border-slate-200 text-slate-600 hover:border-slate-300'}">
+      ${vv.imageUrl?`<img src="${vv.imageUrl}" class="w-8 h-8 rounded-lg object-cover shrink-0" onerror="this.style.display='none'">`:''}
+      ${vv.name}
+    </button>`).join('');
+  updatePdImg(v.imageUrl||p.imageUrl);
+  const ex = cartItems.find(i=>i.productId===_pdProductId&&i.variantId===variantId);
+  _pdQty = ex ? ex.qty : 1;
+  document.getElementById('pd-qty-display').textContent = _pdQty;
+}
+
+function setPdQty(delta) {
+  _pdQty = Math.max(1, _pdQty+delta);
+  document.getElementById('pd-qty-display').textContent = _pdQty;
+}
+
+function addToCartFromDetail() {
+  const p = products.find(x=>x.id===_pdProductId); if (!p) return;
+  const vs = p.variants||[];
+  if (vs.length && !_pdVariantId) { toast('กรุณาเลือกตัวเลือกสินค้า','bg-amber-500'); return; }
+  const v = vs.find(x=>x.id===_pdVariantId);
+  cartItems = cartItems.filter(i=>!(i.productId===_pdProductId&&i.variantId===(_pdVariantId||null)));
+  if (_pdQty > 0) cartItems.push({
+    productId:_pdProductId, variantId:_pdVariantId||null,
+    variantName:v?.name||null, name:p.name, price:p.price, qty:_pdQty,
+    imageUrl:v?.imageUrl||p.imageUrl||null
+  });
+  syncCart();
+  closePdModal();
+  toast('เพิ่มในตะกร้าเรียบร้อย','bg-green-600');
 }
 
 function openCart() {
@@ -630,8 +750,23 @@ function openProductModal(id=null) {
   document.getElementById('f-image').value     = p?.imageUrl    ?? '';
   document.getElementById('f-available').checked = p?.available !== false;
   previewImg(p?.imageUrl ?? '');
+  // load variants
+  const rows = document.getElementById('variant-rows');
+  rows.innerHTML = '';
+  (p?.variants||[]).forEach(v=>addVariantRow(v.name, v.imageUrl, v.id));
   document.getElementById('product-modal').classList.remove('hidden');
   setTimeout(()=>document.getElementById('f-name').focus(),100);
+}
+
+function addVariantRow(name='', imageUrl='', id='') {
+  const row = document.createElement('div');
+  row.className = 'variant-row flex gap-2 items-center';
+  row.innerHTML = `
+    <input type="hidden" class="v-id" value="${id||uid()}">
+    <input type="text" class="v-name flex-1 border rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ชื่อตัวเลือก เช่น สีแดง" value="${name}">
+    <input type="url" class="v-img flex-1 border rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="URL รูป (ถ้ามี)" value="${imageUrl}">
+    <button type="button" onclick="this.closest('.variant-row').remove()" class="text-red-400 hover:text-red-600 font-bold text-lg px-1 shrink-0">×</button>`;
+  document.getElementById('variant-rows').appendChild(row);
 }
 function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); _editProdId=null; }
 document.getElementById('product-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeProductModal(); });
@@ -649,8 +784,13 @@ async function saveProduct() {
   const imageUrl  = document.getElementById('f-image').value.trim();
   const available = document.getElementById('f-available').checked;
   if (!name||isNaN(price)) { toast('กรุณากรอกชื่อและราคา','bg-red-500'); return; }
+  const variants = Array.from(document.querySelectorAll('#variant-rows .variant-row')).map(r=>({
+    id: r.querySelector('.v-id').value,
+    name: r.querySelector('.v-name').value.trim(),
+    imageUrl: r.querySelector('.v-img').value.trim()
+  })).filter(v=>v.name);
   const id = _editProdId||uid();
-  await fdb.collection('products').doc(id).set({id,name,price,description:desc,imageUrl,available},{merge:true});
+  await fdb.collection('products').doc(id).set({id,name,price,description:desc,imageUrl,available,variants},{merge:true});
   toast(_editProdId?'อัปเดตเรียบร้อย':'เพิ่มสินค้าเรียบร้อย','bg-green-600');
   closeProductModal();
 }
