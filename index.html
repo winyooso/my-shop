@@ -640,6 +640,7 @@ function selectPdVariant(variantId, prod) {
       ${vv.name}
     </button>`).join('');
   updatePdImg(v.imageUrl||p.imageUrl);
+  document.getElementById('pd-price').textContent = fmt(v.price||p.price);
   const ex = cartItems.find(i=>i.productId===_pdProductId&&i.variantId===variantId);
   _pdQty = ex ? ex.qty : 1;
   document.getElementById('pd-qty-display').textContent = _pdQty;
@@ -655,10 +656,11 @@ function addToCartFromDetail() {
   const vs = p.variants||[];
   if (vs.length && !_pdVariantId) { toast('กรุณาเลือกตัวเลือกสินค้า','bg-amber-500'); return; }
   const v = vs.find(x=>x.id===_pdVariantId);
+  const effectivePrice = v?.price || p.price;
   cartItems = cartItems.filter(i=>!(i.productId===_pdProductId&&i.variantId===(_pdVariantId||null)));
   if (_pdQty > 0) cartItems.push({
     productId:_pdProductId, variantId:_pdVariantId||null,
-    variantName:v?.name||null, name:p.name, price:p.price, qty:_pdQty,
+    variantName:v?.name||null, name:p.name, price:effectivePrice, qty:_pdQty,
     imageUrl:v?.imageUrl||p.imageUrl||null
   });
   syncCart();
@@ -753,19 +755,22 @@ function openProductModal(id=null) {
   // load variants
   const rows = document.getElementById('variant-rows');
   rows.innerHTML = '';
-  (p?.variants||[]).forEach(v=>addVariantRow(v.name, v.imageUrl, v.id));
+  (p?.variants||[]).forEach(v=>addVariantRow(v.name, v.imageUrl, v.id, v.price||''));
   document.getElementById('product-modal').classList.remove('hidden');
   setTimeout(()=>document.getElementById('f-name').focus(),100);
 }
 
-function addVariantRow(name='', imageUrl='', id='') {
+function addVariantRow(name='', imageUrl='', id='', price='') {
   const row = document.createElement('div');
-  row.className = 'variant-row flex gap-2 items-center';
+  row.className = 'variant-row space-y-1.5 bg-slate-50 rounded-xl p-2.5 relative';
   row.innerHTML = `
     <input type="hidden" class="v-id" value="${id||uid()}">
-    <input type="text" class="v-name flex-1 border rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ชื่อตัวเลือก เช่น สีแดง" value="${name}">
-    <input type="url" class="v-img flex-1 border rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="URL รูป (ถ้ามี)" value="${imageUrl}">
-    <button type="button" onclick="this.closest('.variant-row').remove()" class="text-red-400 hover:text-red-600 font-bold text-lg px-1 shrink-0">×</button>`;
+    <div class="flex gap-2">
+      <input type="text" class="v-name flex-1 border bg-white rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ชื่อตัวเลือก เช่น สีแดง" value="${name}">
+      <input type="number" class="v-price w-28 border bg-white rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ราคา (฿)" min="0" step="any" value="${price}">
+      <button type="button" onclick="this.closest('.variant-row').remove()" class="text-red-400 hover:text-red-600 font-bold text-lg px-1 shrink-0">×</button>
+    </div>
+    <input type="url" class="v-img w-full border bg-white rounded-xl px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="URL รูปภาพ (ถ้ามี)" value="${imageUrl}">`;
   document.getElementById('variant-rows').appendChild(row);
 }
 function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); _editProdId=null; }
@@ -787,7 +792,8 @@ async function saveProduct() {
   const variants = Array.from(document.querySelectorAll('#variant-rows .variant-row')).map(r=>({
     id: r.querySelector('.v-id').value,
     name: r.querySelector('.v-name').value.trim(),
-    imageUrl: r.querySelector('.v-img').value.trim()
+    imageUrl: r.querySelector('.v-img').value.trim(),
+    price: parseFloat(r.querySelector('.v-price').value)||null
   })).filter(v=>v.name);
   const id = _editProdId||uid();
   await fdb.collection('products').doc(id).set({id,name,price,description:desc,imageUrl,available,variants},{merge:true});
