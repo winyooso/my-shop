@@ -310,11 +310,6 @@
           class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
       </div>
       <div>
-        <label class="text-xs font-medium text-slate-500 mb-1 block">ราคา (฿) *</label>
-        <input id="f-price" type="number" min="0" step="any" placeholder="0.00"
-          class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-      </div>
-      <div>
         <label class="text-xs font-medium text-slate-500 mb-1 block">คำอธิบาย</label>
         <textarea id="f-desc" rows="2" placeholder="รายละเอียดสินค้า"
           class="w-full border rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
@@ -538,7 +533,7 @@ function renderStore(filter='') {
         <div class="p-3 flex flex-col flex-1 gap-1">
           <p class="font-semibold text-sm line-clamp-2 flex-1">${p.name}</p>
           ${p.description?`<p class="text-xs text-slate-400 line-clamp-2">${p.description}</p>`:''}
-          <p class="font-bold text-indigo-600 text-base">${fmt(p.price)}</p>
+          ${(()=>{const prices=(p.variants||[]).map(v=>v.price).filter(Boolean);const mn=Math.min(...prices),mx=Math.max(...prices);return prices.length?`<p class="font-bold text-indigo-600 text-base">${mn===mx?fmt(mn):'฿'+mn.toLocaleString('th')+' – ฿'+mx.toLocaleString('th')}</p>`:(p.price?`<p class="font-bold text-indigo-600 text-base">${fmt(p.price)}</p>`:'');})()}
           ${btnEl}
         </div>
       </div>`;
@@ -600,7 +595,7 @@ function openProductDetail(productId) {
   const p = products.find(x=>x.id===productId); if (!p) return;
   _pdProductId = productId; _pdVariantId = null; _pdQty = 1;
   document.getElementById('pd-name').textContent  = p.name;
-  document.getElementById('pd-price').textContent = fmt(p.price);
+  document.getElementById('pd-price').textContent = '';
   const descEl = document.getElementById('pd-desc');
   if (p.description) { descEl.textContent=p.description; descEl.classList.remove('hidden'); }
   else descEl.classList.add('hidden');
@@ -612,6 +607,7 @@ function openProductDetail(productId) {
   } else {
     vsSection.classList.add('hidden');
     updatePdImg(p.imageUrl);
+    if (p.price) document.getElementById('pd-price').textContent = fmt(p.price);
     const ex = cartItems.find(i=>i.productId===productId&&!i.variantId);
     _pdQty = ex ? ex.qty : 1;
     document.getElementById('pd-qty-display').textContent = _pdQty;
@@ -747,7 +743,6 @@ function openProductModal(id=null) {
   const p = id ? products.find(x=>x.id===id) : {};
   document.getElementById('prod-modal-title').textContent = id ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า';
   document.getElementById('f-name').value      = p?.name        ?? '';
-  document.getElementById('f-price').value     = p?.price       ?? '';
   document.getElementById('f-desc').value      = p?.description ?? '';
   document.getElementById('f-image').value     = p?.imageUrl    ?? '';
   document.getElementById('f-available').checked = p?.available !== false;
@@ -784,11 +779,10 @@ function previewImg(url) {
 
 async function saveProduct() {
   const name      = document.getElementById('f-name').value.trim();
-  const price     = parseFloat(document.getElementById('f-price').value);
   const desc      = document.getElementById('f-desc').value.trim();
   const imageUrl  = document.getElementById('f-image').value.trim();
   const available = document.getElementById('f-available').checked;
-  if (!name||isNaN(price)) { toast('กรุณากรอกชื่อและราคา','bg-red-500'); return; }
+  if (!name) { toast('กรุณากรอกชื่อสินค้า','bg-red-500'); return; }
   const variants = Array.from(document.querySelectorAll('#variant-rows .variant-row')).map(r=>({
     id: r.querySelector('.v-id').value,
     name: r.querySelector('.v-name').value.trim(),
@@ -796,7 +790,7 @@ async function saveProduct() {
     price: parseFloat(r.querySelector('.v-price').value)||null
   })).filter(v=>v.name);
   const id = _editProdId||uid();
-  await fdb.collection('products').doc(id).set({id,name,price,description:desc,imageUrl,available,variants},{merge:true});
+  await fdb.collection('products').doc(id).set({id,name,description:desc,imageUrl,available,variants},{merge:true});
   toast(_editProdId?'อัปเดตเรียบร้อย':'เพิ่มสินค้าเรียบร้อย','bg-green-600');
   closeProductModal();
 }
