@@ -13,7 +13,7 @@
   <style>
     input, select, textarea { font-size: 16px !important; }
     .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
-    button { min-height: 36px; }
+    button { min-height: 36px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     @media (max-width: 1023px) { button { min-height: 44px; } }
     @media (max-width: 1023px) {
       .modal-wrap { align-items: flex-end !important; padding: 0 !important; }
@@ -24,8 +24,10 @@
     .status-pending   { background:#fef3c7; color:#92400e; }
     .status-confirmed { background:#d1fae5; color:#065f46; }
     .status-cancelled { background:#fee2e2; color:#991b1b; }
-    .prod-img { width:100%; aspect-ratio:1/1; object-fit:cover; }
-    .prod-placeholder { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#cbd5e1; }
+    /* padding-bottom trick แทน aspect-ratio (รองรับ WebView เก่าใน LINE/Android) */
+    .sq-wrap { position:relative; width:100%; padding-bottom:100%; overflow:hidden; background:#f1f5f9; }
+    .sq-wrap > img  { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .sq-wrap > .sq-ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#cbd5e1; }
     .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .admin-tab { padding:.3rem 1rem; border-radius:9999px; font-size:.875rem; font-weight:500; color:rgba(255,255,255,.7); transition:all .15s; background:none; border:none; }
     .admin-tab:hover { background:rgba(255,255,255,.15); color:#fff; }
@@ -92,10 +94,12 @@
         </button>
       </div>
       <!-- รูปหลัก -->
-      <div id="pd-img-wrap" class="shrink-0 bg-slate-100 mx-4 rounded-2xl overflow-hidden">
-        <img id="pd-img" src="" alt="" class="w-full aspect-square object-cover hidden" onerror="this.classList.add('hidden');document.getElementById('pd-img-ph').classList.remove('hidden')" />
-        <div id="pd-img-ph" class="w-full aspect-square flex items-center justify-center text-slate-300">
-          <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <div class="shrink-0 mx-4 rounded-2xl overflow-hidden">
+        <div class="sq-wrap rounded-2xl">
+          <img id="pd-img" src="" alt="" class="hidden" onerror="this.classList.add('hidden');document.getElementById('pd-img-ph').classList.remove('hidden')" />
+          <div id="pd-img-ph" class="sq-ph">
+            <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
         </div>
       </div>
       <!-- เนื้อหา -->
@@ -513,10 +517,11 @@ function renderStore(filter='') {
   }
   grid.innerHTML = list.map(p => {
     const cartQty = cartItems.filter(i=>i.productId===p.id).reduce((s,i)=>s+i.qty,0);
-    const imgEl = p.imageUrl
-      ? `<img src="${p.imageUrl}" alt="" class="prod-img rounded-t-2xl" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-        + `<div class="prod-placeholder rounded-t-2xl" style="display:none">${svgImg()}</div>`
-      : `<div class="prod-placeholder rounded-t-2xl">${svgImg()}</div>`;
+    const imgEl = `<div class="sq-wrap rounded-t-2xl">${
+      p.imageUrl
+        ? `<img src="${p.imageUrl}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="sq-ph" style="display:none">${svgImg()}</div>`
+        : `<div class="sq-ph">${svgImg()}</div>`
+    }</div>`;
     const btnEl = cartQty
       ? `<button onclick="openProductDetail('${p.id}')"
            class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-1">
@@ -630,9 +635,11 @@ function selectPdVariant(variantId, prod) {
   // render pills
   document.getElementById('pd-variants').innerHTML = (p.variants||[]).map(vv=>{
     const sel = vv.id===variantId;
-    const img = vv.imageUrl
-      ? `<img src="${vv.imageUrl}" class="w-full aspect-square object-cover rounded-t-xl" onerror="this.style.display='none'">`
-      : `<div class="w-full aspect-square rounded-t-xl bg-slate-100 flex items-center justify-center text-slate-300"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
+    const img = `<div class="sq-wrap rounded-t-xl">${
+      vv.imageUrl
+        ? `<img src="${vv.imageUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="sq-ph" style="display:none"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`
+        : `<div class="sq-ph"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`
+    }</div>`;
     return `
       <button onclick="selectPdVariant('${vv.id}')"
         class="flex flex-col overflow-hidden rounded-xl border-2 transition text-left w-full
@@ -732,9 +739,11 @@ function renderAdminProducts() {
   if (!products.length) { el.innerHTML=`<p class="col-span-4 text-center py-16 text-slate-400">ยังไม่มีสินค้า</p>`; return; }
   el.innerHTML = products.map(p=>`
     <div class="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col ${!p.available?'opacity-60':''}">
-      ${p.imageUrl
-        ? `<img src="${p.imageUrl}" alt="" class="prod-img" onerror="this.style.display='none'">`
-        : `<div class="prod-placeholder">${svgImg()}</div>`}
+      <div class="sq-wrap">${
+        p.imageUrl
+          ? `<img src="${p.imageUrl}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="sq-ph" style="display:none">${svgImg()}</div>`
+          : `<div class="sq-ph">${svgImg()}</div>`
+      }</div>
       <div class="p-3 flex-1 flex flex-col">
         <p class="font-semibold text-sm flex-1 mb-1">${p.name}</p>
         <p class="font-bold text-indigo-600 mb-0.5">${fmt(p.price)}</p>
