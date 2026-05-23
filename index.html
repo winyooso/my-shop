@@ -105,7 +105,7 @@
         <!-- ตัวเลือก -->
         <div id="pd-variants-section" class="hidden">
           <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">ตัวเลือกสินค้า</p>
-          <div id="pd-variants" class="flex flex-wrap gap-2"></div>
+          <div id="pd-variants" class="grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
         </div>
       </div>
       <!-- จำนวน + เพิ่มในตะกร้า -->
@@ -628,13 +628,22 @@ function selectPdVariant(variantId, prod) {
   const v = (p.variants||[]).find(x=>x.id===variantId); if (!v) return;
   _pdVariantId = variantId;
   // render pills
-  document.getElementById('pd-variants').innerHTML = (p.variants||[]).map(vv=>`
-    <button onclick="selectPdVariant('${vv.id}')"
-      class="flex items-center gap-2 border-2 rounded-xl px-3 py-2 text-sm font-medium transition
-             ${vv.id===variantId?'border-indigo-500 bg-indigo-50 text-indigo-700':'border-slate-200 text-slate-600 hover:border-slate-300'}">
-      ${vv.imageUrl?`<img src="${vv.imageUrl}" class="w-8 h-8 rounded-lg object-cover shrink-0" onerror="this.style.display='none'">`:''}
-      ${vv.name}
-    </button>`).join('');
+  document.getElementById('pd-variants').innerHTML = (p.variants||[]).map(vv=>{
+    const sel = vv.id===variantId;
+    const img = vv.imageUrl
+      ? `<img src="${vv.imageUrl}" class="w-full aspect-square object-cover rounded-t-xl" onerror="this.style.display='none'">`
+      : `<div class="w-full aspect-square rounded-t-xl bg-slate-100 flex items-center justify-center text-slate-300"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`;
+    return `
+      <button onclick="selectPdVariant('${vv.id}')"
+        class="flex flex-col overflow-hidden rounded-xl border-2 transition text-left w-full
+               ${sel?'border-indigo-500 shadow-sm':'border-slate-200 hover:border-slate-300'}">
+        ${img}
+        <div class="px-1.5 py-1 ${sel?'bg-indigo-50':''}">
+          <p class="text-xs font-medium leading-tight line-clamp-2 ${sel?'text-indigo-700':'text-slate-600'}">${vv.name}</p>
+          ${vv.price?`<p class="text-xs font-bold ${sel?'text-indigo-600':'text-slate-500'} mt-0.5">${fmt(vv.price)}</p>`:''}
+        </div>
+      </button>`;
+  }).join('');
   updatePdImg(v.imageUrl||p.imageUrl);
   document.getElementById('pd-price').textContent = fmt(v.price||p.price);
   const ex = cartItems.find(i=>i.productId===_pdProductId&&i.variantId===variantId);
